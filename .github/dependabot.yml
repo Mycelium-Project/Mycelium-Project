@@ -1,0 +1,11 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "./tauri-test"
+    schedule:
+      interval: "daily"
+
+  - package-ecosystem: "cargo"
+    directory: "./tauri-test/src-tauri"
+    schedule:
+      interval: "daily"
