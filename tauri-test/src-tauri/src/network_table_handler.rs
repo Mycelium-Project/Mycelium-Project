@@ -1,5 +1,5 @@
 use std::net::{Ipv4Addr, SocketAddrV4};
-use network_tables::v4::{Client, Config, Subscription};
+use network_tables::v4::{Client, Config, PublishedTopic, Subscription};
 use network_tables::v4::client_config::default_should_reconnect;
 use network_tables::v4::subscription::SubscriptionOptions;
 
@@ -29,7 +29,7 @@ pub async fn nt4() -> Result<(), Box<dyn std::error::Error>> {
     ).await?;
   tracing::info!("Client created");
 
-  let published_topic = client
+  let published_topic: PublishedTopic = client
       .publish_topic("/Test/number", network_tables::v4::Type::Int, None)
       .await?;
   tracing::info!("Topic published");
@@ -64,7 +64,6 @@ pub async fn nt4() -> Result<(), Box<dyn std::error::Error>> {
 
   while let Some(message) = subscription.next().await {
     tracing::info!("{:?}", message);
-    println!("{:?}", message);
   }
 
   Ok(())
