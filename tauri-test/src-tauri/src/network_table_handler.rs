@@ -29,6 +29,7 @@ pub async fn nt4(address: Ipv4Addr, port: u16) -> Result<(), Box<dyn std::error:
     ).await?;
   tracing::info!("Client created");
 
+  //TODO: remove this test at some point
   let published_topic: PublishedTopic = client
       .publish_topic("/Test/number", network_tables::v4::Type::Int, None)
       .await?;

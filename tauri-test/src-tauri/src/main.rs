@@ -10,7 +10,6 @@ fn main() {
     .invoke_handler(tauri::generate_handler![start_network_table_handler])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
-
 }
 
 /**
@@ -29,4 +28,4 @@ fn start_network_table_handler(address: [u8; 4], port: u16) {
   }
 }
 
-// TODO: Add other functions listed in NT4Handler.tsx for export and in network_table_handler.rs
+// TODO: Add other functions listed in NT4Handler.ts for export and in network_table_handler.rs
