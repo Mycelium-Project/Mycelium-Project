@@ -24,3 +24,22 @@ function Publish(topic: String, message: String): void {
     invoke('publish_topic', { topic, message })
         .catch(console.error)
 }
+
+// TODO: backend must be implemented
+function Unsubscribe(topic: String): void {
+    invoke('unsubscribe_from_topic', { topic })
+        .catch(console.error)
+}
+
+// TODO: backend must be implemented, consider swapping to type safe return
+function GetEntry(topic: String): any {
+    invoke('get_entry', { topic })
+        .then((entry) => { return entry })
+        .catch(console.error)
+}
+
+// TODO: backend must be implemented, consider swapping to type safe input
+function SetEntry(topic: String, value: any): void {
+    invoke('set_entry', { topic, value })
+        .catch(console.error)
+}
