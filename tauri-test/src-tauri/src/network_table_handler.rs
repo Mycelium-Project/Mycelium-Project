@@ -4,11 +4,11 @@ use network_tables::v4::client_config::default_should_reconnect;
 use network_tables::v4::subscription::SubscriptionOptions;
 
 #[tokio::main]
-pub async fn nt4() -> Result<(), Box<dyn std::error::Error>> {
+pub async fn nt4(address: Ipv4Addr, port: u16) -> Result<(), Box<dyn std::error::Error>> {
   tracing_subscriber::fmt::init();
 
   let client: Client = Client::try_new_w_config(
-    SocketAddrV4::new(Ipv4Addr::LOCALHOST, 5810),
+    SocketAddrV4::new(address, port),
         Config {
             connect_timeout: 5000,
             disconnect_retry_interval: 10000,

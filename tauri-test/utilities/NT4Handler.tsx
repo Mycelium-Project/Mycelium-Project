@@ -2,14 +2,14 @@
 
 import { invoke } from '@tauri-apps/api/tauri'
 
-function StartNetworkTableHandler(): void {
-    invoke('start_network_table_handler', { })
+function StartNetworkTableHandler(address: number[], port: number): void {
+    invoke('start_network_table_handler', { address, port })
         .catch(console.error)
 }
 
 // TODO: backend must be implemented
-function StopNetworkTableHandler(): void {
-    invoke('stop_network_table_handler', { })
+function StopNetworkTableHandler(address: number[], port: number): void {
+    invoke('stop_network_table_handler', { address, port })
         .catch(console.error)
 }
 
