@@ -24,6 +24,9 @@ To be built in rust & kotlin for the robot side, and rust & TS/TSX with Next & T
 - [ ] OxConfig plugin
 - [ ] Scouting Data plugin
 
+## Developing
+[Docs](docs/developing.md)
+
 ### Developers
 - Autumn Ouellette
 - Nick Sharp
