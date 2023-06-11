@@ -25,8 +25,8 @@ export function StartNetworkTableHandler(address: number[], port: number): void 
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function IsNetworkTableHandlerConnected(address: number[], port: number): any {
-    invoke('get_entry', { address, port })
+export function DoesNetworkTableHandlerExist(address: number[], port: number): any {
+    invoke('does_network_table_handler_exist', { address, port })
         .then((connected) => { return connected })
         .catch(console.error)
 }
@@ -38,7 +38,6 @@ export function IsNetworkTableHandlerConnected(address: number[], port: number):
  * @param port a number representing the port of the server, must be between 0 and 65535
  *
  * This function calls on the native backend and may result in a crash.
- * TODO: backend must be implemented
  */
 export function StopNetworkTableHandler(address: number[], port: number): void {
     invoke('stop_network_table_handler', { address, port })

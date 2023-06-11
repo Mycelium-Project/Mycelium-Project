@@ -70,7 +70,9 @@ pub async fn nt4(address: Ipv4Addr, port: u16) -> Result<(), Box<dyn std::error:
     // });
     // tracing::info!("Task spawned");
 
-    client.publish_value(&published_topic, &network_tables::Value::from(0)).await?;
+    client
+        .publish_value(&published_topic, &network_tables::Value::from(0))
+        .await?;
     tracing::info!("Value published");
 
     while let Some(message) = subscription.next().await {

@@ -1,9 +1,9 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::net::{Ipv4Addr, SocketAddrV4};
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::net::{Ipv4Addr, SocketAddrV4};
 use tokio::task::JoinHandle as TokioJoinHandle;
 
 mod network_table_handler;
@@ -19,11 +19,13 @@ thread_local! {
     static NETWORK_CLIENT_MAP: RefCell<HashMap<SocketAddrV4, TokioJoinHandle<()>>> = RefCell::new(HashMap::new());
 }
 
-
 #[tokio::main]
 async fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![start_network_table_handler, stop_network_table_handler])
+        .invoke_handler(tauri::generate_handler![
+            start_network_table_handler,
+            stop_network_table_handler
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -41,7 +43,9 @@ async fn main() {
 fn start_network_table_handler(address: [u8; 4], port: u16) {
     let ip = Ipv4Addr::from(address);
 
-    if let Some(thread) = NETWORK_CLIENT_MAP.with(|map| map.borrow_mut().remove(&SocketAddrV4::new(ip, port))) {
+    if let Some(thread) =
+        NETWORK_CLIENT_MAP.with(|map| map.borrow_mut().remove(&SocketAddrV4::new(ip, port)))
+    {
         tracing::info!("Stopping network table handler for {}:{}", ip, port);
         thread.abort();
     }
@@ -52,12 +56,12 @@ fn start_network_table_handler(address: [u8; 4], port: u16) {
                 Ok(_) => println!("Network table handler started successfully"),
                 Err(e) => println!("Error starting network table handler: {}", e),
             }
-        })});
+        })
+    });
     NETWORK_CLIENT_MAP.with(|map| {
         map.borrow_mut().insert(SocketAddrV4::new(ip, port), thread);
     });
 }
-
 
 #[tauri::command]
 fn stop_network_table_handler(address: [u8; 4], port: u16) {
