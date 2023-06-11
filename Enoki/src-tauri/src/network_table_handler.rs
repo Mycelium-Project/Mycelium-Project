@@ -31,6 +31,7 @@ pub async fn nt4(address: Ipv4Addr, port: u16) -> Result<(), Box<dyn std::error:
                 })
             }),
         },
+        Option::from("Enoki"),
     )
     .await?;
     tracing::info!("Client created");
@@ -45,7 +46,7 @@ pub async fn nt4(address: Ipv4Addr, port: u16) -> Result<(), Box<dyn std::error:
         .subscribe_w_options(
             &[""],
             Some(SubscriptionOptions {
-                periodic: Option::from(1),
+                periodic: Option::from(0.5 as f64),
                 all: Option::from(true),
                 topics_only: Option::from(false),
                 prefix: Option::from(false),
