@@ -134,7 +134,7 @@ export function SetIntegerArray(topic: String, value: number[]): void {
 }
 
 /**
- * Sets the value of a floating point topic
+ * Sets the value of a floating point topic, which is a f32 in rust
  * @param topic the topic to set the value of
  * @param value the floating point value to set the topic to
  *
@@ -146,7 +146,7 @@ export function SetFloat(topic: String, value: number): void {
 }
 
 /**
- * Sets the value of a floating point array topic
+ * Sets the value of a floating point array topic, which is a f32 in rust
  * @param topic the topic to set the value of
  * @param value the floating point array value to set the topic to
  *
@@ -155,6 +155,30 @@ export function SetFloat(topic: String, value: number): void {
  */
 export function SetFloatArray(topic: String, value: number[]): void {
   invoke("set_float_arr_entry", { topic, value }).catch(console.error);
+}
+
+/**
+ * Sets the value of a double topic, which is a f64 in rust
+ * @param topic the topic to set the value of
+ * @param value the double value to set the topic to
+ *
+ * This function calls on the native backend and may result in a crash.
+ * TODO: backend must be implemented
+ */
+export function SetDouble(topic: String, value: number): void {
+    invoke("set_double_entry", { topic, value }).catch(console.error);
+}
+
+/**
+ * Sets the value of a double array topic, which is a f64 in rust
+ * @param topic the topic to set the value of
+ * @param value the double array value to set the topic to
+ *
+ * This function calls on the native backend and may result in a crash.
+ * TODO: backend must be implemented
+ */
+export function SetDoubleArray(topic: String, value: number[]): void {
+    invoke("set_double_arr_entry", { topic, value }).catch(console.error);
 }
 
 /**
