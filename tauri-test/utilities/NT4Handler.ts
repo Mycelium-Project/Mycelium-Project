@@ -29,8 +29,17 @@ function StopNetworkTableHandler(address: number[], port: number): void {
         .catch(console.error)
 }
 
-// TODO: backend must be implemented
-function Subscribe(topic: String, periodic?: number, all?: boolean, prefix?: String): void {
+/**
+ * Subscribes to a topic
+ * @param topic the topic to subscribe to
+ * @param periodic the period to update the value of the topic at
+ * @param all whether or not to subscribe to all entries in the topic
+ * @param prefix whether or not to subscribe to all topics with the same prefix
+ *
+ * This function calls on the native backend and may result in a crash.
+ * TODO: backend must be implemented
+ */
+function Subscribe(topic: String, periodic?: number, all?: boolean, prefix?: boolean): void {
     invoke('subscribe_to_topic', { topic, periodic, all, prefix })
         .catch(console.error)
 }
