@@ -4,12 +4,13 @@
 2. Install NodeJS from [nodejs.org](https://nodejs.org)
 3. Install yarn from [yarnpkg.com](https://yarnpkg.com/getting-started/install)
 
-### Setting Up Tauri Test
+### Setting Up Enoki for Development
 1. Open Enoki or run `cd Enoki` in your terminal
 2. Install node dependencies by using `yarn`
-3. Run `cargo tauri dev` in your terminal to start the app
+3. Install tauri-cli by using `cargo install tauri-cli`
+4. Run `cargo tauri dev` in your terminal to start the app
 
-### Building Tauri Test for Production
+### Building Enoki for Production
 1. Open Enoki or run `cd Enoki` in your terminal
 2. Install node dependencies by using `yarn`
 3. Run `cargo tauri build` in your terminal to build the app
