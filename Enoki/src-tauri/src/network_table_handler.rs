@@ -56,19 +56,22 @@ pub async fn nt4(address: Ipv4Addr, port: u16) -> Result<(), Box<dyn std::error:
         .await?;
     tracing::info!("Subscription created");
 
-    let task_client: Client = client.clone();
-    tokio::spawn(async move {
-        let mut counter: i32 = 0;
-        loop {
-            task_client
-                .publish_value(&published_topic, &network_tables::Value::from(counter))
-                .await
-                .unwrap();
-            counter += 1;
-            tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
-        }
-    });
-    tracing::info!("Task spawned");
+    // let task_client: Client = client.clone();
+    // tokio::spawn(async move {
+    //     let mut counter: i32 = 0;
+    //     loop {
+    //         task_client
+    //             .publish_value(&published_topic, &network_tables::Value::from(counter))
+    //             .await
+    //             .unwrap();
+    //         counter += 1;
+    //         tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+    //     }
+    // });
+    // tracing::info!("Task spawned");
+
+    client.publish_value(&published_topic, &network_tables::Value::from(0)).await?;
+    tracing::info!("Value published");
 
     while let Some(message) = subscription.next().await {
         tracing::info!("{:?}", message);
