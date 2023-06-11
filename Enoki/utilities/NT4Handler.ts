@@ -25,10 +25,9 @@ export function StartNetworkTableHandler(address: number[], port: number): void 
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function DoesNetworkTableHandlerExist(address: number[], port: number): any {
+export function DoesNetworkTableHandlerExist(address: number[], port: number) {
     invoke('does_network_table_handler_exist', { address, port })
-        .then((connected) => { return connected })
-        .catch(console.error)
+        .then((exists) => { return exists as boolean })
 }
 
 /**

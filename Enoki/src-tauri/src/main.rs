@@ -24,6 +24,7 @@ async fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             start_network_table_handler,
+            does_network_table_handler_exist,
             stop_network_table_handler
         ])
         .run(tauri::generate_context!())
@@ -41,7 +42,7 @@ async fn main() {
 */
 #[tauri::command]
 fn start_network_table_handler(address: [u8; 4], port: u16) {
-    let ip = Ipv4Addr::from(address);
+    let ip: Ipv4Addr = Ipv4Addr::from(address);
 
     if let Some(thread) =
         NETWORK_CLIENT_MAP.with(|map| map.borrow_mut().remove(&SocketAddrV4::new(ip, port)))
@@ -64,8 +65,20 @@ fn start_network_table_handler(address: [u8; 4], port: u16) {
 }
 
 #[tauri::command]
+fn does_network_table_handler_exist(address: [u8; 4], port: u16) -> bool {
+    let ip: Ipv4Addr = Ipv4Addr::from(address);
+    return if NETWORK_CLIENT_MAP.with(|map| {
+        map.borrow().contains_key(&SocketAddrV4::new(ip, port))
+    }) {
+        true.into()
+    } else {
+        false.into()
+    }
+}
+
+#[tauri::command]
 fn stop_network_table_handler(address: [u8; 4], port: u16) {
-    let ip = Ipv4Addr::from(address);
+    let ip: Ipv4Addr = Ipv4Addr::from(address);
     NETWORK_CLIENT_MAP.with(|map| {
         if let Some(thread) = map.borrow_mut().remove(&SocketAddrV4::new(ip, port)) {
             tracing::info!("Stopping network table handler for {}:{}", ip, port);
