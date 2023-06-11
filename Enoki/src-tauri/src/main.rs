@@ -67,13 +67,12 @@ fn start_network_table_handler(address: [u8; 4], port: u16) {
 #[tauri::command]
 fn does_network_table_handler_exist(address: [u8; 4], port: u16) -> bool {
     let ip: Ipv4Addr = Ipv4Addr::from(address);
-    return if NETWORK_CLIENT_MAP.with(|map| {
-        map.borrow().contains_key(&SocketAddrV4::new(ip, port))
-    }) {
+    return if NETWORK_CLIENT_MAP.with(|map| map.borrow().contains_key(&SocketAddrV4::new(ip, port)))
+    {
         true.into()
     } else {
         false.into()
-    }
+    };
 }
 
 #[tauri::command]
