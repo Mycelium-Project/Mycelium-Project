@@ -5,7 +5,8 @@ use std::net::Ipv4Addr;
 
 mod network_table_handler;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![start_network_table_handler])
         .run(tauri::generate_context!())
@@ -23,9 +24,12 @@ fn main() {
 */
 #[tauri::command]
 fn start_network_table_handler(address: [u8; 4], port: u16) {
-    if network_table_handler::nt4(Ipv4Addr::from(address), port).is_err() {
-        println!("Error in network_table_handler::nt4()");
-    }
+    tokio::spawn(async move {
+        match network_table_handler::nt4(Ipv4Addr::from(address), port).await {
+            Ok(_) => println!("Network table handler started successfully"),
+            Err(e) => println!("Error starting network table handler: {}", e),
+        }
+    });
 }
 
 // TODO: Add other functions listed in NT4Handler.ts for export and in network_table_handler.rs

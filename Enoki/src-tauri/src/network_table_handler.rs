@@ -3,10 +3,7 @@ use network_tables::v4::subscription::SubscriptionOptions;
 use network_tables::v4::{Client, Config, PublishedTopic, Subscription};
 use std::net::{Ipv4Addr, SocketAddrV4};
 
-#[tokio::main]
 pub async fn nt4(address: Ipv4Addr, port: u16) -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt::init();
-
     let client: Client = Client::try_new_w_config(
         SocketAddrV4::new(address, port),
         Config {
@@ -48,7 +45,7 @@ pub async fn nt4(address: Ipv4Addr, port: u16) -> Result<(), Box<dyn std::error:
         .subscribe_w_options(
             &[""],
             Some(SubscriptionOptions {
-                periodic: Option::from(100),
+                periodic: Option::from(1),
                 all: Option::from(true),
                 topics_only: Option::from(false),
                 prefix: Option::from(false),

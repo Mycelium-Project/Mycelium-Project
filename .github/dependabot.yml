@@ -1,11 +1,11 @@
 version: 2
 updates:
   - package-ecosystem: "npm"
-    directory: "./tauri-test"
+    directory: "./Enoki"
     schedule:
       interval: "daily"
 
   - package-ecosystem: "cargo"
-    directory: "./tauri-test/src-tauri"
+    directory: "./Enoki/src-tauri"
     schedule:
       interval: "daily"
