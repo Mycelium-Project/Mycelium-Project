@@ -1,0 +1,6 @@
+node_modules
+out
+.next
+src-tauri
+yarn.lock
+next-env.d.ts
