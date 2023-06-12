@@ -3,21 +3,17 @@
 import Image from "next/image";
 import { JSX } from "react";
 import {
-  DoesNetworkTableHandlerExist,
   NetworkTableHandlerId,
   StartNetworkTableHandler,
-  StopNetworkTableHandler,
-
 } from "@/utilities/NT4Handler";
 import { invoke } from "@tauri-apps/api/tauri";
-import { tauri } from "@tauri-apps/api";
-import { window } from "@tauri-apps/api"
-import { TauriEvent } from "@tauri-apps/api/event"
+import { window } from "@tauri-apps/api";
+import { TauriEvent } from "@tauri-apps/api/event";
 
-window.getCurrent().listen(TauriEvent.WINDOW_CLOSE_REQUESTED, () => {
-  invoke("close");
+window.getCurrent().listen(TauriEvent.WINDOW_CLOSE_REQUESTED, (): boolean => {
+  invoke("close").then();
   return true;
-});
+}).then();
 
 export default function Home(): JSX.Element {
   return (
@@ -58,7 +54,7 @@ export default function Home(): JSX.Element {
         />
       </div>
 
-      <div className="mb-32 grid text-center lg:mb-0 lg:grid-cols-2 lg:text-left">
+      <div className="mb-32 grid text-center lg:mb-0 lg:grid-cols-4 lg:text-left">
         <button
           className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
           onClick={StartNTHandler}
@@ -89,6 +85,38 @@ export default function Home(): JSX.Element {
             localhost:5810
           </p>
         </button>
+
+        <button
+          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
+          onClick={SubscribeExample}
+        >
+          <h2 className={`mb-3 text-2xl font-semibold`}>
+            Subscribe{" "}
+            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
+              -&gt;
+            </span>
+          </h2>
+          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
+            Click here to subscribe to a value on the network tables server on
+            localhost:5810
+          </p>
+        </button>
+
+        <button
+          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
+          onClick={PublishExample}
+        >
+          <h2 className={`mb-3 text-2xl font-semibold`}>
+            Publish{" "}
+            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
+              -&gt;
+            </span>
+          </h2>
+          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
+            Click here to subscribe to a publish on the network tables server on
+            localhost:5810
+          </p>
+        </button>
       </div>
     </main>
   );
@@ -106,4 +134,10 @@ function StopNT4Handler(): void {
   testTable.StopNetworkTableHandler();
 }
 
+function SubscribeExample(): void {
+  console.log("Subscribing to NetworkTables");
+}
 
+function PublishExample(): void {
+  console.log("Publishing to NetworkTables");
+}
