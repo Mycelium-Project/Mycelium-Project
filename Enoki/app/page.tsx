@@ -3,20 +3,17 @@
 import Image from "next/image";
 import { JSX } from "react";
 import {
-  DoesNetworkTableHandlerExist,
   NetworkTableHandlerId,
   StartNetworkTableHandler,
-  StopNetworkTableHandler,
 } from "@/utilities/NT4Handler";
 import { invoke } from "@tauri-apps/api/tauri";
-import { tauri } from "@tauri-apps/api";
 import { window } from "@tauri-apps/api";
 import { TauriEvent } from "@tauri-apps/api/event";
 
-window.getCurrent().listen(TauriEvent.WINDOW_CLOSE_REQUESTED, () => {
-  invoke("close");
+window.getCurrent().listen(TauriEvent.WINDOW_CLOSE_REQUESTED, (): boolean => {
+  invoke("close").then();
   return true;
-});
+}).then();
 
 export default function Home(): JSX.Element {
   return (
