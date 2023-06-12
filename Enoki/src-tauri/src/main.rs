@@ -124,6 +124,8 @@ fn subscribe_to_topic(
             );
             handler.subscribe(vec![data]);
             tracing::info!("Subscribed to topic {}", topic);
+        } else {
+            tracing::warn!("No network table handler found for {}", handler_id);
         }
     });
 }
@@ -136,6 +138,8 @@ fn set_boolean_topic(handler_id: NetworkTableHandlerId, topic: String, value: bo
                 MushroomTypes::Boolean(value), topic.clone().into(), None);
             handler.publish(MushroomTable::new_from_entries(0, vec![entry]));
             tracing::info!("Set boolean topic {} to {}", topic, value);
+        } else {
+            tracing::warn!("No network table handler found for {}", handler_id);
         }
     });
 }
@@ -148,6 +152,8 @@ fn set_float_topic(handler_id: NetworkTableHandlerId, topic: String, value: f64)
                 MushroomTypes::Float(value), topic.clone().into(), None);
             handler.publish(MushroomTable::new_from_entries(0, vec![entry]));
             tracing::info!("Set float topic {} to {}", topic, value);
+        } else {
+            tracing::warn!("No network table handler found for {}", handler_id);
         }
     });
 }
@@ -160,6 +166,8 @@ fn set_double_topic(handler_id: NetworkTableHandlerId, topic: String, value: f64
                 MushroomTypes::Double(value), topic.clone().into(), None);
             handler.publish(MushroomTable::new_from_entries(0, vec![entry]));
             tracing::info!("Set double topic {} to {}", topic, value);
+        } else {
+            tracing::warn!("No network table handler found for {}", handler_id);
         }
     });
 }
@@ -172,6 +180,8 @@ fn set_string_topic(handler_id: NetworkTableHandlerId, topic: String, value: Str
                 MushroomTypes::String(value.clone()), topic.clone().into(), None);
             handler.publish(MushroomTable::new_from_entries(0, vec![entry]));
             tracing::info!("Set string topic {} to {}", topic, value);
+        } else {
+            tracing::warn!("No network table handler found for {}", handler_id);
         }
     });
 }
@@ -183,7 +193,9 @@ fn set_int_topic(handler_id: NetworkTableHandlerId, topic: String, value: i64) {
             let entry = MushroomEntry::new(
                 MushroomTypes::Int(value), topic.clone().into(), None);
             handler.publish(MushroomTable::new_from_entries(0, vec![entry]));
-            tracing::info!("Set int topic {} to {}", topic, value);
+            tracing::info!("Set int topic {} to {} for {}", topic, value, handler_id);
+        } else {
+            tracing::warn!("No network table handler found for {}", handler_id);
         }
     });
 }
@@ -196,6 +208,8 @@ fn set_boolean_array_topic(handler_id: NetworkTableHandlerId, topic: String, val
                 MushroomTypes::BooleanArray(value.clone()), topic.clone().into(), None);
             handler.publish(MushroomTable::new_from_entries(0, vec![entry]));
             tracing::info!("Set boolean array topic {} to {:?}", topic, value);
+        } else {
+            tracing::warn!("No network table handler found for {}", handler_id);
         }
     });
 }
@@ -208,6 +222,8 @@ fn set_float_array_topic(handler_id: NetworkTableHandlerId, topic: String, value
                 MushroomTypes::FloatArray(value.clone()), topic.clone().into(), None);
             handler.publish(MushroomTable::new_from_entries(0, vec![entry]));
             tracing::info!("Set float array topic {} to {:?}", topic, value);
+        } else {
+            tracing::warn!("No network table handler found for {}", handler_id);
         }
     });
 }
@@ -220,6 +236,8 @@ fn set_double_array_topic(handler_id: NetworkTableHandlerId, topic: String, valu
                 MushroomTypes::DoubleArray(value.clone()), topic.clone().into(), None);
             handler.publish(MushroomTable::new_from_entries(0, vec![entry]));
             tracing::info!("Set double array topic {} to {:?}", topic, value);
+        } else {
+            tracing::warn!("No network table handler found for {}", handler_id);
         }
     });
 }
@@ -232,6 +250,8 @@ fn set_string_array_topic(handler_id: NetworkTableHandlerId, topic: String, valu
                 MushroomTypes::StringArray(value.clone()), topic.clone().into(), None);
             handler.publish(MushroomTable::new_from_entries(0, vec![entry]));
             tracing::info!("Set string array topic {} to {:?}", topic, value);
+        } else {
+            tracing::warn!("No network table handler found for {}", handler_id);
         }
     });
 }
@@ -244,6 +264,8 @@ fn set_int_array_topic(handler_id: NetworkTableHandlerId, topic: String, value: 
                 MushroomEntry::new(MushroomTypes::IntArray(value.clone()), topic.clone().into(), None);
             handler.publish(MushroomTable::new_from_entries(0, vec![entry]));
             tracing::info!("Set int array topic {} to {:?}", topic, value);
+        } else {
+            tracing::warn!("No network table handler found for {}", handler_id);
         }
     });
 }

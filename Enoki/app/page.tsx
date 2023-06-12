@@ -136,8 +136,10 @@ function StopNT4Handler(): void {
 
 function SubscribeExample(): void {
   console.log("Subscribing to NetworkTables");
+  testTable.Subscribe("")
 }
 
 function PublishExample(): void {
   console.log("Publishing to NetworkTables");
+  testTable.SetEntry("/test", 1);
 }

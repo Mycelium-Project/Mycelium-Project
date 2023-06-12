@@ -61,6 +61,7 @@ impl NetworkTableHandler {
     }
 
     pub fn publish(&mut self, table: MushroomTable) {
+        tracing::info!("Publishing table to network table handler {}", self.id);
         self.input.try_send(table).unwrap_or_else(|err| {
             tracing::error!(
                 "Failed to send to network table handler {}",

@@ -98,9 +98,32 @@ export class NetworkTableHandlerId {
           SetStringArray(this, topic, value as String[]);
         } else if (value[0] instanceof Boolean) {
           SetBooleanArray(this, topic, value as Boolean[]);
+        } else if (typeof value[0] === "number") {
+          if (value[0] % 1 === 0) {
+            SetIntegerArray(this, topic, value as Number[]);
+          } else {
+            SetDoubleArray(this, topic, value as Number[]);
+          }
+        } else if (typeof value[0] === "string") {
+          SetStringArray(this, topic, value as String[]);
+        } else if (typeof value[0] === "boolean") {
+          SetBooleanArray(this, topic, value as Boolean[]);
         }
       } else {
         SetDoubleArray(this, topic, []);
+      }
+    } else {
+      //primitive catch
+      if (typeof value === "number") {
+        if (value % 1 === 0) {
+          SetInteger(this, topic, new Number(value));
+        } else {
+          SetDouble(this, topic, new Number(value));
+        }
+      } else if (typeof value === "string") {
+        SetString(this, topic, new String(value));
+      } else if (typeof value === "boolean") {
+        SetBoolean(this, topic, new Boolean(value));
       }
     }
   }
