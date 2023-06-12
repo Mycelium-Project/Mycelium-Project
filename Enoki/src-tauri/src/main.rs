@@ -1,7 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use mushroom_types::{MushroomEntry, MushroomTable, MushroomTypes};
+use mushroom_types::{MushroomEntry, MushroomTypes};
 use network_table_handler::{NetworkTableHandler, NetworkTableHandlerId, SubscriptionPackage};
 use network_tables::v4::SubscriptionOptions;
 use std::time::Instant;
@@ -41,6 +41,7 @@ async fn main() {
             set_double_array_topic,
             set_string_array_topic,
             set_int_array_topic,
+            get_pubbed_data,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -240,4 +241,20 @@ fn set_int_array_topic(handler_id: NetworkTableHandlerId, topic: String, value: 
             tracing::info!("Set int array topic {} to {:?}", topic, value);
         }
     });
+}
+
+#[tauri::command]
+fn get_pubbed_data(handler_id: NetworkTableHandlerId) -> Vec<MushroomEntry> {
+    NETWORK_CLIENT_MAP.with(|map| {
+        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
+            let poll_opt = handler.poll();
+            if poll_opt.is_some() {
+                return poll_opt.unwrap();
+            } else {
+                vec![]
+            }
+        } else {
+            vec![]
+        }
+    })
 }
