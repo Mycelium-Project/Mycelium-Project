@@ -27,9 +27,7 @@ impl NetworkTableHandlerId {
 pub struct NetworkTableHandler {
     id: NetworkTableHandlerId,
     subscriptions: Sender<Vec<SubscriptionData>>,
-    input_idx: i64,
     input: Sender<MushroomTable>,
-    output_idx: i64,
     output: Receiver<MushroomTable>,
     thread: TokioJoinHandle<()>,
 }
@@ -44,9 +42,7 @@ impl NetworkTableHandler {
         Self {
             id,
             subscriptions,
-            input_idx: 0,
             input,
-            output_idx: 0,
             output,
             thread,
         }
@@ -67,6 +63,23 @@ impl NetworkTableHandler {
                 );
                 tracing::error!("Error: {}", err);
             });
+    }
+
+    pub fn subscribe(&mut self, sub_data: Vec<SubscriptionData>) {
+        self.subscriptions
+            .try_send(sub_data)
+            .unwrap_or_else(|err| {
+                tracing::error!(
+                    "Failed to send to network table handler {}:{}",
+                    self.id.ip,
+                    self.id.port
+                );
+                tracing::error!("Error: {}", err);
+            });
+    }
+
+    pub fn poll(&mut self) -> Option<MushroomTable> {
+        self.output.try_recv().ok()
     }
 
     pub fn get_id(&self) -> &NetworkTableHandlerId {
@@ -157,7 +170,7 @@ fn inner_nt4(
                         let name = sub_data.name.clone();
                         let options = sub_data.options.clone();
                         if subs.contains_key(&name) {
-                            client.unsubscribe(subs.remove(&name).unwrap());
+                            client.unsubscribe(subs.remove(&name).unwrap()).await.ok();
                         }
                         let sub = client
                                 .subscribe_w_options(&[name.clone()], options)
@@ -185,7 +198,7 @@ fn inner_nt4(
                             pubs.insert(path.clone(), topic);
                         }
                         let topic = pubs.get(&path).unwrap();
-                        client.publish_value(topic, &rmpv::Value::from(entry.get_value()));
+                        client.publish_value(topic, &rmpv::Value::from(entry.get_value())).await.ok();
                         tracing::info!("Published to {}:{}:{}", address, port, path);
                     }
                 }

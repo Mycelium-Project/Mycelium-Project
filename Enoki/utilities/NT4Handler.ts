@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { invoke } from '@tauri-apps/api/tauri'
+import { invoke } from "@tauri-apps/api/tauri";
 
 /**
  * Starts a network table client connected to the specified address and port
@@ -10,9 +10,11 @@ import { invoke } from '@tauri-apps/api/tauri'
  *
  * This function calls on the native backend and may result in a crash.
  */
-export function StartNetworkTableHandler(address: number[], port: number): void {
-    invoke('start_network_table_handler', { address, port })
-        .catch(console.error)
+export function StartNetworkTableHandler(
+  address: number[],
+  port: number
+): void {
+  invoke("start_network_table_handler", { address, port }).catch(console.error);
 }
 
 /**
@@ -23,13 +25,17 @@ export function StartNetworkTableHandler(address: number[], port: number): void 
  * @return a boolean representing whether or not the client is connected
  *
  * This function calls on the native backend and may result in a crash.
- * TODO: backend must be implemented
+ * TODO: Front end does not work for some fudging reason
  */
-export function IsNetworkTableHandlerConnected(address: number[], port: number): any {
-    invoke('get_entry', { address, port })
-        .then((connected) => { return connected })
-        .catch(console.error)
-}
+export const DoesNetworkTableHandlerExist = async (
+  address: number[],
+  port: number
+): Promise<boolean> => {
+  return (await invoke("does_network_table_handler_exist", {
+    address,
+    port,
+  })) as boolean;
+};
 
 /**
  * Ends a network table client connected to the specified address and port
@@ -38,11 +44,9 @@ export function IsNetworkTableHandlerConnected(address: number[], port: number):
  * @param port a number representing the port of the server, must be between 0 and 65535
  *
  * This function calls on the native backend and may result in a crash.
- * TODO: backend must be implemented
  */
 export function StopNetworkTableHandler(address: number[], port: number): void {
-    invoke('stop_network_table_handler', { address, port })
-        .catch(console.error)
+  invoke("stop_network_table_handler", { address, port }).catch(console.error);
 }
 
 /**
@@ -55,9 +59,15 @@ export function StopNetworkTableHandler(address: number[], port: number): void {
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function Subscribe(topic: String, periodic?: number, all?: boolean, prefix?: boolean): void {
-    invoke('subscribe_to_topic', { topic, periodic, all, prefix })
-        .catch(console.error)
+export function Subscribe(
+  topic: String,
+  periodic?: number,
+  all?: boolean,
+  prefix?: boolean
+): void {
+  invoke("subscribe_to_topic", { topic, periodic, all, prefix }).catch(
+    console.error
+  );
 }
 
 /**
@@ -69,8 +79,7 @@ export function Subscribe(topic: String, periodic?: number, all?: boolean, prefi
  * TODO: backend must be implemented
  */
 export function Publish(topic: String, message: any): void {
-    invoke('publish_topic', { topic, message })
-        .catch(console.error)
+  invoke("publish_topic", { topic, message }).catch(console.error);
 }
 
 /**
@@ -81,8 +90,7 @@ export function Publish(topic: String, message: any): void {
  * TODO: backend must be implemented
  */
 export function Unsubscribe(topic: String): void {
-    invoke('unsubscribe_from_topic', { topic })
-        .catch(console.error)
+  invoke("unsubscribe_from_topic", { topic }).catch(console.error);
 }
 
 /**
@@ -94,9 +102,11 @@ export function Unsubscribe(topic: String): void {
  * TODO: backend must be implemented
  */
 export function GetEntry(topic: String): any {
-    invoke('get_entry', { topic })
-        .then((entry) => { return entry })
-        .catch(console.error)
+  invoke("get_entry", { topic })
+    .then((entry) => {
+      return entry;
+    })
+    .catch(console.error);
 }
 
 /**
@@ -108,8 +118,7 @@ export function GetEntry(topic: String): any {
  * TODO: backend must be implemented
  */
 export function SetInteger(topic: String, value: number): void {
-    invoke('set_integer_entry', { topic, value })
-        .catch(console.error)
+  invoke("set_integer_entry", { topic, value }).catch(console.error);
 }
 
 /**
@@ -121,12 +130,11 @@ export function SetInteger(topic: String, value: number): void {
  * TODO: backend must be implemented
  */
 export function SetIntegerArray(topic: String, value: number[]): void {
-    invoke('set_integer_arr_entry', { topic, value })
-        .catch(console.error)
+  invoke("set_integer_arr_entry", { topic, value }).catch(console.error);
 }
 
 /**
- * Sets the value of a floating point topic
+ * Sets the value of a floating point topic, which is a f32 in rust
  * @param topic the topic to set the value of
  * @param value the floating point value to set the topic to
  *
@@ -134,12 +142,11 @@ export function SetIntegerArray(topic: String, value: number[]): void {
  * TODO: backend must be implemented
  */
 export function SetFloat(topic: String, value: number): void {
-    invoke('set_float_entry', { topic, value })
-        .catch(console.error)
+  invoke("set_float_entry", { topic, value }).catch(console.error);
 }
 
 /**
- * Sets the value of a floating point array topic
+ * Sets the value of a floating point array topic, which is a f32 in rust
  * @param topic the topic to set the value of
  * @param value the floating point array value to set the topic to
  *
@@ -147,8 +154,31 @@ export function SetFloat(topic: String, value: number): void {
  * TODO: backend must be implemented
  */
 export function SetFloatArray(topic: String, value: number[]): void {
-    invoke('set_float_arr_entry', { topic, value })
-        .catch(console.error)
+  invoke("set_float_arr_entry", { topic, value }).catch(console.error);
+}
+
+/**
+ * Sets the value of a double topic, which is a f64 in rust
+ * @param topic the topic to set the value of
+ * @param value the double value to set the topic to
+ *
+ * This function calls on the native backend and may result in a crash.
+ * TODO: backend must be implemented
+ */
+export function SetDouble(topic: String, value: number): void {
+    invoke("set_double_entry", { topic, value }).catch(console.error);
+}
+
+/**
+ * Sets the value of a double array topic, which is a f64 in rust
+ * @param topic the topic to set the value of
+ * @param value the double array value to set the topic to
+ *
+ * This function calls on the native backend and may result in a crash.
+ * TODO: backend must be implemented
+ */
+export function SetDoubleArray(topic: String, value: number[]): void {
+    invoke("set_double_arr_entry", { topic, value }).catch(console.error);
 }
 
 /**
@@ -160,8 +190,7 @@ export function SetFloatArray(topic: String, value: number[]): void {
  * TODO: backend must be implemented
  */
 export function SetBoolean(topic: String, value: boolean): void {
-    invoke('set_boolean_entry', { topic, value })
-        .catch(console.error)
+  invoke("set_boolean_entry", { topic, value }).catch(console.error);
 }
 
 /**
@@ -173,8 +202,7 @@ export function SetBoolean(topic: String, value: boolean): void {
  * TODO: backend must be implemented
  */
 export function SetBooleanArray(topic: String, value: boolean[]): void {
-    invoke('set_boolean_arr_entry', { topic, value })
-        .catch(console.error)
+  invoke("set_boolean_arr_entry", { topic, value }).catch(console.error);
 }
 
 /**
@@ -186,8 +214,7 @@ export function SetBooleanArray(topic: String, value: boolean[]): void {
  * TODO: backend must be implemented
  */
 export function SetByteArray(topic: String, value: any[]): void {
-    invoke('set_byte_arr_entry', { topic, value })
-        .catch(console.error)
+  invoke("set_byte_arr_entry", { topic, value }).catch(console.error);
 }
 
 /**
@@ -199,8 +226,7 @@ export function SetByteArray(topic: String, value: any[]): void {
  * TODO: backend must be implemented
  */
 export function SetString(topic: String, value: String): void {
-    invoke('set_string_entry', { topic, value })
-        .catch(console.error)
+  invoke("set_string_entry", { topic, value }).catch(console.error);
 }
 
 /**
@@ -212,6 +238,5 @@ export function SetString(topic: String, value: String): void {
  * TODO: backend must be implemented
  */
 export function SetStringArray(topic: String, value: String[]): void {
-    invoke('set_string_arr_entry', { topic, value })
-        .catch(console.error)
+  invoke("set_string_arr_entry", { topic, value }).catch(console.error);
 }
