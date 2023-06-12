@@ -1,4 +1,6 @@
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+use serde::Serialize;
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum MushroomTypes {
     ByteArray(Vec<u8>),
     Protobuf(Vec<u8>),
@@ -12,6 +14,28 @@ pub enum MushroomTypes {
     StringArray(Vec<String>),
     Boolean(bool),
     BooleanArray(Vec<bool>),
+}
+
+impl Serialize for MushroomTypes {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            MushroomTypes::ByteArray(v) => serializer.serialize_bytes(v),
+            MushroomTypes::Protobuf(v) => serializer.serialize_bytes(v),
+            MushroomTypes::Float(v) => serializer.serialize_f64(*v),
+            MushroomTypes::FloatArray(v) => serializer.collect_seq(v),
+            MushroomTypes::Double(v) => serializer.serialize_f64(*v),
+            MushroomTypes::DoubleArray(v) => serializer.collect_seq(v),
+            MushroomTypes::Int(v) => serializer.serialize_i64(*v),
+            MushroomTypes::IntArray(v) => serializer.collect_seq(v),
+            MushroomTypes::String(v) => serializer.serialize_str(v),
+            MushroomTypes::StringArray(v) => serializer.collect_seq(v),
+            MushroomTypes::Boolean(v) => serializer.serialize_bool(*v),
+            MushroomTypes::BooleanArray(v) => serializer.collect_seq(v),
+        }
+    }
 }
 
 impl MushroomTypes {
@@ -344,32 +368,33 @@ impl From<MushroomTypes> for network_tables::v4::message_type::Type {
     }
 }
 
-impl From<network_tables::v4::message_type::Type> for MushroomTypes {
-    fn from(m: network_tables::v4::message_type::Type) -> Self {
-        match m {
-            network_tables::v4::message_type::Type::Boolean => MushroomTypes::Boolean(false),
-            network_tables::v4::message_type::Type::Double => MushroomTypes::Double(0.0),
-            network_tables::v4::message_type::Type::Float => MushroomTypes::Float(0.0),
-            network_tables::v4::message_type::Type::Int => MushroomTypes::Int(0),
-            network_tables::v4::message_type::Type::String => MushroomTypes::String("".to_string()),
-            network_tables::v4::message_type::Type::BooleanArray => {
-                MushroomTypes::BooleanArray(vec![])
-            }
-            network_tables::v4::message_type::Type::DoubleArray => {
-                MushroomTypes::DoubleArray(vec![])
-            }
-            network_tables::v4::message_type::Type::FloatArray => MushroomTypes::FloatArray(vec![]),
-            network_tables::v4::message_type::Type::IntArray => MushroomTypes::IntArray(vec![]),
-            network_tables::v4::message_type::Type::StringArray => {
-                MushroomTypes::StringArray(vec![])
-            }
-            network_tables::v4::message_type::Type::ProtoBuf => MushroomTypes::Protobuf(vec![]),
-            _ => MushroomTypes::ByteArray(vec![]),
-        }
-    }
-}
+//shouldn't be needed and doesn't persist value
+// impl From<network_tables::v4::message_type::Type> for MushroomTypes {
+//     fn from(m: network_tables::v4::message_type::Type) -> Self {
+//         match m {
+//             network_tables::v4::message_type::Type::Boolean => MushroomTypes::Boolean(false),
+//             network_tables::v4::message_type::Type::Double => MushroomTypes::Double(0.0),
+//             network_tables::v4::message_type::Type::Float => MushroomTypes::Float(0.0),
+//             network_tables::v4::message_type::Type::Int => MushroomTypes::Int(0),
+//             network_tables::v4::message_type::Type::String => MushroomTypes::String("".to_string()),
+//             network_tables::v4::message_type::Type::BooleanArray => {
+//                 MushroomTypes::BooleanArray(vec![])
+//             }
+//             network_tables::v4::message_type::Type::DoubleArray => {
+//                 MushroomTypes::DoubleArray(vec![])
+//             }
+//             network_tables::v4::message_type::Type::FloatArray => MushroomTypes::FloatArray(vec![]),
+//             network_tables::v4::message_type::Type::IntArray => MushroomTypes::IntArray(vec![]),
+//             network_tables::v4::message_type::Type::StringArray => {
+//                 MushroomTypes::StringArray(vec![])
+//             }
+//             network_tables::v4::message_type::Type::ProtoBuf => MushroomTypes::Protobuf(vec![]),
+//             _ => MushroomTypes::ByteArray(vec![]),
+//         }
+//     }
+// }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct MushroomEntry {
     value: MushroomTypes,
     path: Vec<String>,
@@ -385,6 +410,7 @@ impl MushroomEntry {
         }
     }
 
+    ///Takes a path separated by `/` and retuns a vector of strings
     pub fn make_path(slash_separated_path: &str) -> Vec<String> {
         slash_separated_path
             .split('/')
