@@ -43,7 +43,7 @@ async fn main() {
             set_double_array_topic,
             set_string_array_topic,
             set_int_array_topic,
-            get_pubbed_data,
+            get_subbed_entries_values,
             close
         ])
         .run(tauri::generate_context!())
