@@ -249,7 +249,7 @@ fn set_int_array_topic(handler_id: NetworkTableHandlerId, topic: String, value: 
 }
 
 #[tauri::command]
-fn get_pubbed_data(handler_id: NetworkTableHandlerId) -> MushroomTable {
+fn get_subbed_entries_values(handler_id: NetworkTableHandlerId) -> MushroomTable {
     NETWORK_CLIENT_MAP.with(|map| {
         if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
             handler.poll()
