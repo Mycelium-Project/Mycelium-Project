@@ -224,7 +224,7 @@ fn set_string_array_topic(handler_id: NetworkTableHandlerId, topic: String, valu
         if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
             let entry = MushroomEntry::new(
                 MushroomTypes::StringArray(value.clone()), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
-            handler.publish(entry);
+            handler.publish(vec![entry]);
             tracing::info!("Set string array topic {} to {:?}", topic, value);
         }
     });
