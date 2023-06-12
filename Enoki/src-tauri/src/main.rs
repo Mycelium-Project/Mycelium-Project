@@ -108,7 +108,7 @@ fn subscribe_to_topic(
     NETWORK_CLIENT_MAP.with(|map| {
         if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
             let data = SubscriptionPackage::new(
-                topic,
+                topic.clone(),
                 SubscriptionOptions {
                     all,
                     prefix,
@@ -116,7 +116,8 @@ fn subscribe_to_topic(
                     ..Default::default()
                 },
             );
-            handler.subscribe(vec![data])
+            handler.subscribe(vec![data]);
+            tracing::info!("Subscribed to topic {}", topic);
         }
     });
 }
@@ -127,7 +128,8 @@ fn set_boolean_topic(handler_id: NetworkTableHandlerId, topic: String, value: bo
         if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
             let entry = MushroomEntry::new(
                 MushroomTypes::Boolean(value), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
-            handler.publish(vec![entry])
+            handler.publish(vec![entry]);
+            tracing::info!("Set boolean topic {} to {}", topic, value);
         }
     });
 }
@@ -138,7 +140,8 @@ fn set_float_topic(handler_id: NetworkTableHandlerId, topic: String, value: f64)
         if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
             let entry = MushroomEntry::new(
                 MushroomTypes::Float(value), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
-            handler.publish(vec![entry])
+            handler.publish(vec![entry]);
+            tracing::info!("Set float topic {} to {}", topic, value);
         }
     });
 }
@@ -149,7 +152,8 @@ fn set_double_topic(handler_id: NetworkTableHandlerId, topic: String, value: f64
         if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
             let entry = MushroomEntry::new(
                 MushroomTypes::Double(value), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
-            handler.publish(vec![entry])
+            handler.publish(vec![entry]);
+            tracing::info!("Set double topic {} to {}", topic, value);
         }
     });
 }
@@ -160,7 +164,8 @@ fn set_string_topic(handler_id: NetworkTableHandlerId, topic: String, value: Str
         if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
             let entry = MushroomEntry::new(
                 MushroomTypes::String(value), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
-            handler.publish(vec![entry])
+            handler.publish(vec![entry]);
+            tracing::info!("Set string topic {} to {}", topic, value);
         }
     });
 }
@@ -171,7 +176,8 @@ fn set_int_topic(handler_id: NetworkTableHandlerId, topic: String, value: i64) {
         if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
             let entry = MushroomEntry::new(
                 MushroomTypes::Int(value), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
-            handler.publish(vec![entry])
+            handler.publish(vec![entry]);
+            tracing::info!("Set int topic {} to {}", topic, value);
         }
     });
 }
@@ -181,8 +187,9 @@ fn set_boolean_array_topic(handler_id: NetworkTableHandlerId, topic: String, val
     NETWORK_CLIENT_MAP.with(|map| {
         if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
             let entry = MushroomEntry::new(
-                MushroomTypes::BooleanArray(value), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
-            handler.publish(vec![entry])
+                MushroomTypes::BooleanArray(value.clone()), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
+            handler.publish(vec![entry]);
+            tracing::info!("Set boolean array topic {} to {:?}", topic, value);
         }
     });
 }
@@ -192,8 +199,9 @@ fn set_float_array_topic(handler_id: NetworkTableHandlerId, topic: String, value
     NETWORK_CLIENT_MAP.with(|map| {
         if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
             let entry = MushroomEntry::new(
-                MushroomTypes::FloatArray(value), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
-            handler.publish(vec![entry])
+                MushroomTypes::FloatArray(value.clone()), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
+            handler.publish(vec![entry]);
+            tracing::info!("Set float array topic {} to {:?}", topic, value);
         }
     });
 }
@@ -203,8 +211,9 @@ fn set_double_array_topic(handler_id: NetworkTableHandlerId, topic: String, valu
     NETWORK_CLIENT_MAP.with(|map| {
         if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
             let entry = MushroomEntry::new(
-                MushroomTypes::DoubleArray(value), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
-            handler.publish(vec![entry])
+                MushroomTypes::DoubleArray(value.clone()), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
+            handler.publish(vec![entry]);
+            tracing::info!("Set double array topic {} to {:?}", topic, value);
         }
     });
 }
@@ -213,13 +222,10 @@ fn set_double_array_topic(handler_id: NetworkTableHandlerId, topic: String, valu
 fn set_string_array_topic(handler_id: NetworkTableHandlerId, topic: String, value: Vec<String>) {
     NETWORK_CLIENT_MAP.with(|map| {
         if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
-            let mut entries = Vec::new();
-            for (i, v) in value.iter().enumerate() {
-                let entry = MushroomEntry::new(
-                    MushroomTypes::String(v.clone()), MushroomEntry::make_path(format!("{}/{}", topic, i).as_str()), Some(timestamp()));
-                entries.push(entry);
-            }
-            handler.publish(entries)
+            let entry = MushroomEntry::new(
+                MushroomTypes::StringArray(value.clone()), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
+            handler.publish(entry);
+            tracing::info!("Set string array topic {} to {:?}", topic, value);
         }
     });
 }
@@ -228,13 +234,10 @@ fn set_string_array_topic(handler_id: NetworkTableHandlerId, topic: String, valu
 fn set_int_array_topic(handler_id: NetworkTableHandlerId, topic: String, value: Vec<i64>) {
     NETWORK_CLIENT_MAP.with(|map| {
         if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
-            let mut entries = Vec::new();
-            for (i, v) in value.iter().enumerate() {
-                let entry = MushroomEntry::new(
-                    MushroomTypes::Int(*v), MushroomEntry::make_path(format!("{}/{}", topic, i).as_str()), Some(timestamp()));
-                entries.push(entry);
-            }
-            handler.publish(entries)
+            let entry =
+                MushroomEntry::new(MushroomTypes::IntArray(value.clone()), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
+            handler.publish(vec![entry]);
+            tracing::info!("Set int array topic {} to {:?}", topic, value);
         }
     });
 }
