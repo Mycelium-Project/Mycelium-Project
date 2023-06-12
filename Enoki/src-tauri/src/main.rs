@@ -188,7 +188,7 @@ fn set_boolean_array_topic(handler_id: NetworkTableHandlerId, topic: String, val
 }
 
 #[tauri::command]
-fn set_float_array_topic(handler_id: NetworkTableHandlerId, topic: String, value: Vec<f32>) {
+fn set_float_array_topic(handler_id: NetworkTableHandlerId, topic: String, value: Vec<f64>) {
     NETWORK_CLIENT_MAP.with(|map| {
         if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
             let entry = MushroomEntry::new(
