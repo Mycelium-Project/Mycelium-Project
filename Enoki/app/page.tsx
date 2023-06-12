@@ -4,10 +4,20 @@ import Image from "next/image";
 import { JSX } from "react";
 import {
   DoesNetworkTableHandlerExist,
+  NetworkTableHandlerId,
   StartNetworkTableHandler,
   StopNetworkTableHandler,
+
 } from "@/utilities/NT4Handler";
 import { invoke } from "@tauri-apps/api/tauri";
+import { tauri } from "@tauri-apps/api";
+import { window } from "@tauri-apps/api"
+import { TauriEvent } from "@tauri-apps/api/event"
+
+window.getCurrent().listen(TauriEvent.WINDOW_CLOSE_REQUESTED, () => {
+  invoke("close");
+  return true;
+});
 
 export default function Home(): JSX.Element {
   return (
@@ -84,11 +94,16 @@ export default function Home(): JSX.Element {
   );
 }
 
+//create a test table variable
+var testTable: NetworkTableHandlerId;
+
 function StartNTHandler(): void {
   console.log("Starting NetworkTables");
-  StartNetworkTableHandler([127, 0, 0, 1], 5810);
+  testTable = StartNetworkTableHandler([127, 0, 0, 1], 5810, "test");
 }
 function StopNT4Handler(): void {
   console.log("Stopping NetworkTables");
-  StopNetworkTableHandler([127, 0, 0, 1], 5810);
+  testTable.StopNetworkTableHandler();
 }
+
+

@@ -2,6 +2,7 @@ use network_tables::v4::client_config::default_should_reconnect;
 use network_tables::v4::subscription::SubscriptionOptions;
 use network_tables::v4::{Client, Config, PublishedTopic, Subscription, Type};
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::hash::Hash;
 use std::net::{Ipv4Addr, SocketAddrV4};
 use std::time::Duration;
@@ -13,13 +14,18 @@ use crate::THREAD_POOL;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Hash, PartialEq, Eq, Clone)]
 pub struct NetworkTableHandlerId {
-    ip: Ipv4Addr,
+    ip: [u8; 4],
     port: u16,
     identity: String,
 }
 impl NetworkTableHandlerId {
     pub fn new(ip: Ipv4Addr, port: u16, identity: String) -> Self {
-        Self { ip, port, identity }
+        Self { ip: ip.octets(), port, identity }
+    }
+}
+impl Display for NetworkTableHandlerId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{}:{}", Ipv4Addr::new(self.ip[0], self.ip[1], self.ip[2], self.ip[3]), self.port, self.identity)
     }
 }
 
@@ -55,9 +61,8 @@ impl NetworkTableHandler {
     pub fn publish(&mut self, table: MushroomTable) {
         self.input.try_send(table).unwrap_or_else(|err| {
             tracing::error!(
-                "Failed to send to network table handler {}:{}",
-                self.id.ip,
-                self.id.port
+                "Failed to send to network table handler {}",
+                self.id
             );
             tracing::error!("Error: {}", err);
         });
@@ -66,9 +71,8 @@ impl NetworkTableHandler {
     pub fn subscribe(&mut self, sub_data: Vec<SubscriptionPackage>) {
         self.subscriptions.try_send(sub_data).unwrap_or_else(|err| {
             tracing::error!(
-                "Failed to send to network table handler {}:{}",
-                self.id.ip,
-                self.id.port
+                "Failed to send to network table handler {}",
+                self.id
             );
             tracing::error!("Error: {}", err);
         });
@@ -111,7 +115,7 @@ pub fn nt4(
     let (snd_sub, rec_sub) = channel::<MushroomTable>(255);
     let (subscription_sender, subscription_receiver) = channel::<Vec<SubscriptionPackage>>(255);
     let id = NetworkTableHandlerId {
-        ip: address,
+        ip: address.octets(),
         port,
         identity: identity.clone(),
     };
@@ -137,7 +141,7 @@ fn inner_nt4(
     output: Sender<MushroomTable>,
 ) -> Result<TokioJoinHandle<()>, Box<dyn std::error::Error>> {
     let thread = THREAD_POOL.with(|thread_pool| {
-        thread_pool.spawn(async move {
+        thread_pool.borrow().as_ref().unwrap().spawn(async move {
             let mut subs: HashMap<String, Subscription> = HashMap::new();
             let mut pubs: HashMap<String, PublishedTopic> = HashMap::new();
 

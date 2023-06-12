@@ -14,11 +14,12 @@ mod network_table_handler;
 
 thread_local! {
 
-    static THREAD_POOL: tokio::runtime::Runtime = tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(4)
-        .enable_all()
-        .build()
-        .unwrap();
+    static THREAD_POOL: RefCell<Option<tokio::runtime::Runtime>> = RefCell::new(
+    Some(tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(4)
+            .enable_all()
+            .build()
+            .unwrap()));
 
     static NETWORK_CLIENT_MAP: RefCell<HashMap<NetworkTableHandlerId, NetworkTableHandler>> = RefCell::new(HashMap::new());
 }
@@ -42,9 +43,18 @@ async fn main() {
             set_string_array_topic,
             set_int_array_topic,
             get_pubbed_data,
+            close
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[tauri::command]
+fn close() {
+    tracing::warn!("Closing");
+    THREAD_POOL.with(|pool| (pool.replace(None)).unwrap().shutdown_background());
+    NETWORK_CLIENT_MAP.with(|map| map.borrow_mut().clear());
+    std::process::exit(0);
 }
 
 fn timestamp() -> f64 {
@@ -72,11 +82,11 @@ fn start_network_table_handler(
     let id = NetworkTableHandlerId::new(ip, port, identity.clone());
 
     if let Some(handler) = NETWORK_CLIENT_MAP.with(|map| map.borrow_mut().remove(&id)) {
-        tracing::info!("Stopping network table handler for {}:{}", ip, port);
+        tracing::info!("Stopping network table handler for {}", id);
         handler.stop();
     }
 
-    tracing::info!("Starting network table handler for {}:{}", ip, port);
+    tracing::info!("Starting network table handler for {}", id);
     let handler = network_table_handler::nt4(ip, port, identity).unwrap();
 
     NETWORK_CLIENT_MAP.with(|map| {
@@ -87,13 +97,13 @@ fn start_network_table_handler(
 }
 
 #[tauri::command]
-fn stop_network_table_handler(address: [u8; 4], port: u16) {
-    let ip = Ipv4Addr::from(address);
-    let id = NetworkTableHandlerId::new(ip, port, "".to_string());
+fn stop_network_table_handler(handler_id: NetworkTableHandlerId) {
     NETWORK_CLIENT_MAP.with(|map| {
-        if let Some(handler) = map.borrow_mut().remove(&id) {
-            tracing::info!("Stopping network table handler for {}:{}", ip, port);
+        if let Some(handler) = map.borrow_mut().remove(&handler_id) {
+            tracing::info!("Stopping network table handler for {}", handler_id);
             handler.stop();
+        } else {
+            tracing::warn!("No network table handler found for {}", handler_id);
         }
     });
 }

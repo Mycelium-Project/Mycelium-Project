@@ -2,6 +2,96 @@
 
 import { invoke } from "@tauri-apps/api/tauri";
 
+//create a global union for network table types
+type NetworkTableTypes = Number | String | Boolean | Number[] | String[] | Boolean[] | Uint8Array;
+
+export class NetworkTableHandlerId {
+  ip: number[];
+  port: number;
+  identity: string;
+  constructor(ip: number[], port: number, identity: string) {
+    this.ip = ip;
+    this.port = port;
+    this.identity = identity;
+  }
+
+  /**
+   * Checks if the network table client associated with this handlerId is running
+   * @return a boolean representing whether or not the client is connected
+   *
+   * This function calls on the native backend and may result in a crash.
+   */
+  public DoesNetworkTableHandlerExist(): boolean {
+    DoesNetworkTableHandlerExist(this).then((result) => {
+      return result;
+    });
+    return false;
+  }
+
+  /**
+   * Ends the network table client associated with this handlerId
+   * 
+   * This function calls on the native backend and may result in a crash.
+   */
+  public StopNetworkTableHandler(): void {
+    StopNetworkTableHandler(this);
+  }
+
+  /**
+   * Subscribes to a topic on the network table client associated with this handlerId
+   * @param topic the topic to subscribe to
+   * @param periodic the period to update the value of the topic at
+   * @param all whether or not to subscribe to all entries in the topic
+   * @param prefix whether or not to subscribe to all topics with the same prefix
+   * 
+   * This function calls on the native backend and may result in a crash.
+   */
+  public Subscribe(
+    topic: String,
+    periodic?: number,
+    all?: boolean,
+    prefix?: boolean
+  ): void {
+    Subscribe(this, topic, periodic, all, prefix);
+  }
+
+  public Unsubscribe(topic: String): void {
+    Unsubscribe(this, topic);
+  }
+
+  public SetEntry(topic: String, value: NetworkTableTypes): void {
+    if (value instanceof Number) {
+      if (value.valueOf() % 1 === 0) {
+        SetInteger(this, topic, value);
+      } else {
+        SetDouble(this, topic, value);
+      }
+    } else if (value instanceof String) {
+      SetString(this, topic, value);
+    } else if (value instanceof Boolean) {
+      SetBoolean(this, topic, value);
+    } else if (value instanceof Uint8Array) {
+      SetByteArray(this, topic, value);
+    } else if (value instanceof Array) {
+      if (value.length > 0) {
+        if (value[0] instanceof Number) {
+          if (value[0].valueOf() % 1 === 0) {
+            SetIntegerArray(this, topic, value as Number[]);
+          } else {
+            SetDoubleArray(this, topic, value as Number[]);
+          }
+        } else if (value[0] instanceof String) {
+          SetStringArray(this, topic, value as String[]);
+        } else if (value[0] instanceof Boolean) {
+          SetBooleanArray(this, topic, value as Boolean[]);
+        }
+      } else {
+        SetDoubleArray(this, topic, []);
+      }
+    }
+  }
+}
+
 /**
  * Starts a network table client connected to the specified address and port
  * @param address an array of 4 numbers representing the ipv4 address of the server
@@ -12,9 +102,11 @@ import { invoke } from "@tauri-apps/api/tauri";
  */
 export function StartNetworkTableHandler(
   address: number[],
-  port: number
-): void {
-  invoke("start_network_table_handler", { address, port }).catch(console.error);
+  port: number,
+  identity: string
+): NetworkTableHandlerId {
+  invoke("start_network_table_handler", { address, port, identity }).catch(console.error);
+  return new NetworkTableHandlerId(address, port, identity);
 }
 
 /**
@@ -25,16 +117,11 @@ export function StartNetworkTableHandler(
  * @return a boolean representing whether or not the client is connected
  *
  * This function calls on the native backend and may result in a crash.
- * TODO: Front end does not work for some fudging reason
  */
 export const DoesNetworkTableHandlerExist = async (
-  address: number[],
-  port: number
+  handlerId: NetworkTableHandlerId
 ): Promise<boolean> => {
-  return (await invoke("does_network_table_handler_exist", {
-    address,
-    port,
-  })) as boolean;
+  return (await invoke("does_network_table_handler_exist", { handlerId })) as boolean;
 };
 
 /**
@@ -45,41 +132,29 @@ export const DoesNetworkTableHandlerExist = async (
  *
  * This function calls on the native backend and may result in a crash.
  */
-export function StopNetworkTableHandler(address: number[], port: number): void {
-  invoke("stop_network_table_handler", { address, port }).catch(console.error);
+export function StopNetworkTableHandler( handlerId: NetworkTableHandlerId ): void {
+  invoke("stop_network_table_handler", { handlerId }).catch(console.error);
 }
 
 /**
- * Subscribes to a topic
+ * Subscribes to a topic on the network table client associated with the specified handlerId
  * @param topic the topic to subscribe to
  * @param periodic the period to update the value of the topic at
  * @param all whether or not to subscribe to all entries in the topic
  * @param prefix whether or not to subscribe to all topics with the same prefix
  *
  * This function calls on the native backend and may result in a crash.
- * TODO: backend must be implemented
  */
 export function Subscribe(
+  handlerId: NetworkTableHandlerId,
   topic: String,
   periodic?: number,
   all?: boolean,
   prefix?: boolean
 ): void {
-  invoke("subscribe_to_topic", { topic, periodic, all, prefix }).catch(
+  invoke("subscribe_to_topic", { handlerId, topic, periodic, all, prefix }).catch(
     console.error
   );
-}
-
-/**
- * Publishes a value to a topic
- * @param topic the topic to publish to
- * @param message the value to publish
- *
- * This function calls on the native backend and may result in a crash.
- * TODO: backend must be implemented
- */
-export function Publish(topic: String, message: any): void {
-  invoke("publish_topic", { topic, message }).catch(console.error);
 }
 
 /**
@@ -89,8 +164,8 @@ export function Publish(topic: String, message: any): void {
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function Unsubscribe(topic: String): void {
-  invoke("unsubscribe_from_topic", { topic }).catch(console.error);
+export function Unsubscribe(handlerId: NetworkTableHandlerId, topic: String): void {
+  invoke("unsubscribe_from_topic", { handlerId, topic }).catch(console.error);
 }
 
 /**
@@ -117,8 +192,9 @@ export function GetEntry(topic: String): any {
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetInteger(topic: String, value: number): void {
-  invoke("set_int_topic", { topic, value }).catch(console.error);
+export function SetInteger(handlerId: NetworkTableHandlerId, topic: String, value: Number): void {
+  var primValue = Math.round(value.valueOf());
+  invoke("set_int_topic", { handlerId, topic, "value": primValue }).catch(console.error);
 }
 
 /**
@@ -129,8 +205,9 @@ export function SetInteger(topic: String, value: number): void {
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetIntegerArray(topic: String, value: number[]): void {
-  invoke("set_int_array_topic", { topic, value }).catch(console.error);
+export function SetIntegerArray(handlerId: NetworkTableHandlerId, topic: String, value: Number[]): void {
+  var primValue = value.map((val) => Math.round(val.valueOf()));
+  invoke("set_int_array_topic", { topic, "value": primValue }).catch(console.error);
 }
 
 /**
@@ -141,8 +218,9 @@ export function SetIntegerArray(topic: String, value: number[]): void {
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetFloat(topic: String, value: number): void {
-  invoke("set_float_topic", { topic, value }).catch(console.error);
+export function SetFloat(handlerId: NetworkTableHandlerId, topic: String, value: Number): void {
+  var primValue = value.valueOf();
+  invoke("set_float_topic", { topic, "value": primValue }).catch(console.error);
 }
 
 /**
@@ -153,8 +231,10 @@ export function SetFloat(topic: String, value: number): void {
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetFloatArray(topic: String, value: number[]): void {
-  invoke("set_float_array_topic", { topic, value }).catch(console.error);
+export function SetFloatArray(handlerId: NetworkTableHandlerId, topic: String, value: Number[]): void {
+  var primValue = value.map((val) => val.valueOf());
+  //maybe should clamp to f32 range
+  invoke("set_float_array_topic", { topic, "value": primValue }).catch(console.error);
 }
 
 /**
@@ -165,8 +245,9 @@ export function SetFloatArray(topic: String, value: number[]): void {
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetDouble(topic: String, value: number): void {
-    invoke("set_double_topic", { topic, value }).catch(console.error);
+export function SetDouble(handlerId: NetworkTableHandlerId, topic: String, value: Number): void {
+  var primValue = value.valueOf();
+  invoke("set_double_topic", { topic, "value": primValue }).catch(console.error);
 }
 
 /**
@@ -177,8 +258,9 @@ export function SetDouble(topic: String, value: number): void {
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetDoubleArray(topic: String, value: number[]): void {
-    invoke("set_double_array_topic", { topic, value }).catch(console.error);
+export function SetDoubleArray(handlerId: NetworkTableHandlerId, topic: String, value: Number[]): void {
+  var primValue = value.map((val) => val.valueOf());
+  invoke("set_double_array_topic", { topic, "value": primValue }).catch(console.error);
 }
 
 /**
@@ -189,8 +271,9 @@ export function SetDoubleArray(topic: String, value: number[]): void {
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetBoolean(topic: String, value: boolean): void {
-  invoke("set_boolean_topic", { topic, value }).catch(console.error);
+export function SetBoolean(handlerId: NetworkTableHandlerId, topic: String, value: Boolean): void {
+  var primValue = value.valueOf();
+  invoke("set_boolean_topic", { topic, "value": primValue }).catch(console.error);
 }
 
 /**
@@ -201,8 +284,9 @@ export function SetBoolean(topic: String, value: boolean): void {
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetBooleanArray(topic: String, value: boolean[]): void {
-  invoke("set_boolean_array_topic", { topic, value }).catch(console.error);
+export function SetBooleanArray(handlerId: NetworkTableHandlerId, topic: String, value: Boolean[]): void {
+  var primValue = value.map((val) => val.valueOf());
+  invoke("set_boolean_array_topic", { topic, "value": primValue }).catch(console.error);
 }
 
 /**
@@ -213,8 +297,9 @@ export function SetBooleanArray(topic: String, value: boolean[]): void {
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetByteArray(topic: String, value: any[]): void {
-  invoke("set_byte_array_topic", { topic, value }).catch(console.error);
+export function SetByteArray(handlerId: NetworkTableHandlerId, topic: String, value: Uint8Array): void {
+  var byteArray: number[] = Array.from(value);
+  invoke("set_byte_array_topic", { topic, "value": byteArray }).catch(console.error);
 }
 
 /**
@@ -225,8 +310,9 @@ export function SetByteArray(topic: String, value: any[]): void {
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetString(topic: String, value: String): void {
-  invoke("set_string_topic", { topic, value }).catch(console.error);
+export function SetString(handlerId: NetworkTableHandlerId, topic: String, value: String): void {
+  var primValue = value.valueOf();
+  invoke("set_string_topic", { topic, "value": primValue }).catch(console.error);
 }
 
 /**
@@ -237,6 +323,7 @@ export function SetString(topic: String, value: String): void {
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetStringArray(topic: String, value: String[]): void {
-  invoke("set_string_array_topic", { topic, value }).catch(console.error);
+export function SetStringArray(handlerId: NetworkTableHandlerId, topic: String, value: String[]): void {
+  var primValue = value.map((val) => val.valueOf());
+  invoke("set_string_array_topic", { topic, "value": primValue }).catch(console.error);
 }
