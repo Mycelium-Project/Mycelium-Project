@@ -1,7 +1,4 @@
-
-
-
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum MushroomTypes {
     ByteArray(Vec<u8>),
     Protobuf(Vec<u8>),
@@ -104,7 +101,10 @@ impl MushroomTypes {
         }
     }
 
-    pub fn get<T>(&self) -> Result<T, String> where T: From<MushroomTypes> {
+    pub fn get<T>(&self) -> Result<T, String>
+    where
+        T: From<MushroomTypes>,
+    {
         match self {
             MushroomTypes::Float(v) => Ok(T::from(MushroomTypes::Float(*v))),
             MushroomTypes::Double(v) => Ok(T::from(MushroomTypes::Double(*v))),
@@ -122,7 +122,10 @@ impl MushroomTypes {
         }
     }
 
-    pub fn get_unwrap<T>(&self) -> T where T: From<MushroomTypes> {
+    pub fn get_unwrap<T>(&self) -> T
+    where
+        T: From<MushroomTypes>,
+    {
         self.get().unwrap()
     }
 }
@@ -252,11 +255,25 @@ impl From<MushroomTypes> for rmpv::Value {
             MushroomTypes::Boolean(v) => rmpv::Value::Boolean(v),
             MushroomTypes::ByteArray(v) => rmpv::Value::Binary(v),
             MushroomTypes::Protobuf(v) => rmpv::Value::Binary(v),
-            MushroomTypes::FloatArray(v) => rmpv::Value::Array(v.into_iter().map(|v| rmpv::Value::F32(v as f32)).collect()),
-            MushroomTypes::DoubleArray(v) => rmpv::Value::Array(v.into_iter().map(|v| rmpv::Value::F64(v)).collect()),
-            MushroomTypes::IntArray(v) => rmpv::Value::Array(v.into_iter().map(|v| rmpv::Value::Integer(v.into())).collect()),
-            MushroomTypes::StringArray(v) => rmpv::Value::Array(v.into_iter().map(|v| rmpv::Value::String(v.into())).collect()),
-            MushroomTypes::BooleanArray(v) => rmpv::Value::Array(v.into_iter().map(|v| rmpv::Value::Boolean(v)).collect()),
+            MushroomTypes::FloatArray(v) => {
+                rmpv::Value::Array(v.into_iter().map(|v| rmpv::Value::F32(v as f32)).collect())
+            }
+            MushroomTypes::DoubleArray(v) => {
+                rmpv::Value::Array(v.into_iter().map(|v| rmpv::Value::F64(v)).collect())
+            }
+            MushroomTypes::IntArray(v) => rmpv::Value::Array(
+                v.into_iter()
+                    .map(|v| rmpv::Value::Integer(v.into()))
+                    .collect(),
+            ),
+            MushroomTypes::StringArray(v) => rmpv::Value::Array(
+                v.into_iter()
+                    .map(|v| rmpv::Value::String(v.into()))
+                    .collect(),
+            ),
+            MushroomTypes::BooleanArray(v) => {
+                rmpv::Value::Array(v.into_iter().map(|v| rmpv::Value::Boolean(v)).collect())
+            }
         }
     }
 }
@@ -275,14 +292,34 @@ impl From<rmpv::Value> for MushroomTypes {
                     return MushroomTypes::FloatArray(Vec::new());
                 }
                 match v[0] {
-                    rmpv::Value::F32(_) => MushroomTypes::FloatArray(v.into_iter().map(|v| v.as_f64().unwrap_or_default()).collect()),
-                    rmpv::Value::F64(_) => MushroomTypes::DoubleArray(v.into_iter().map(|v| v.as_f64().unwrap_or_default()).collect()),
-                    rmpv::Value::Integer(_) => MushroomTypes::IntArray(v.into_iter().map(|v| v.as_i64().unwrap_or_default()).collect()),
-                    rmpv::Value::String(_) => MushroomTypes::StringArray(v.into_iter().map(|v| v.as_str().unwrap_or("").to_owned()).collect()),
-                    rmpv::Value::Boolean(_) => MushroomTypes::BooleanArray(v.into_iter().map(|v| v.as_bool().unwrap_or_default()).collect()),
+                    rmpv::Value::F32(_) => MushroomTypes::FloatArray(
+                        v.into_iter()
+                            .map(|v| v.as_f64().unwrap_or_default())
+                            .collect(),
+                    ),
+                    rmpv::Value::F64(_) => MushroomTypes::DoubleArray(
+                        v.into_iter()
+                            .map(|v| v.as_f64().unwrap_or_default())
+                            .collect(),
+                    ),
+                    rmpv::Value::Integer(_) => MushroomTypes::IntArray(
+                        v.into_iter()
+                            .map(|v| v.as_i64().unwrap_or_default())
+                            .collect(),
+                    ),
+                    rmpv::Value::String(_) => MushroomTypes::StringArray(
+                        v.into_iter()
+                            .map(|v| v.as_str().unwrap_or("").to_owned())
+                            .collect(),
+                    ),
+                    rmpv::Value::Boolean(_) => MushroomTypes::BooleanArray(
+                        v.into_iter()
+                            .map(|v| v.as_bool().unwrap_or_default())
+                            .collect(),
+                    ),
                     _ => panic!("Cannot convert {:?} to MushroomTypes", v),
                 }
-            },
+            }
             _ => panic!("Cannot convert {:?} to MushroomTypes", v),
         }
     }
@@ -315,11 +352,17 @@ impl From<network_tables::v4::message_type::Type> for MushroomTypes {
             network_tables::v4::message_type::Type::Float => MushroomTypes::Float(0.0),
             network_tables::v4::message_type::Type::Int => MushroomTypes::Int(0),
             network_tables::v4::message_type::Type::String => MushroomTypes::String("".to_string()),
-            network_tables::v4::message_type::Type::BooleanArray => MushroomTypes::BooleanArray(vec![]),
-            network_tables::v4::message_type::Type::DoubleArray => MushroomTypes::DoubleArray(vec![]),
+            network_tables::v4::message_type::Type::BooleanArray => {
+                MushroomTypes::BooleanArray(vec![])
+            }
+            network_tables::v4::message_type::Type::DoubleArray => {
+                MushroomTypes::DoubleArray(vec![])
+            }
             network_tables::v4::message_type::Type::FloatArray => MushroomTypes::FloatArray(vec![]),
             network_tables::v4::message_type::Type::IntArray => MushroomTypes::IntArray(vec![]),
-            network_tables::v4::message_type::Type::StringArray => MushroomTypes::StringArray(vec![]),
+            network_tables::v4::message_type::Type::StringArray => {
+                MushroomTypes::StringArray(vec![])
+            }
             network_tables::v4::message_type::Type::ProtoBuf => MushroomTypes::Protobuf(vec![]),
             _ => MushroomTypes::ByteArray(vec![]),
         }
@@ -327,14 +370,14 @@ impl From<network_tables::v4::message_type::Type> for MushroomTypes {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct MushroomEntryValue {
+pub struct MushroomEntry {
     value: MushroomTypes,
     path: Vec<String>,
-    timestamp: Option<u64>,
+    timestamp: Option<f64>,
 }
 
-impl MushroomEntryValue {
-    pub fn new(value: MushroomTypes, path: Vec<String>, timestamp: Option<u64>) -> Self {
+impl MushroomEntry {
+    pub fn new(value: MushroomTypes, path: Vec<String>, timestamp: Option<f64>) -> Self {
         Self {
             value,
             path,
@@ -343,7 +386,10 @@ impl MushroomEntryValue {
     }
 
     pub fn make_path(slash_separated_path: &str) -> Vec<String> {
-        slash_separated_path.split('/').map(|s| s.to_string()).collect()
+        slash_separated_path
+            .split('/')
+            .map(|s| s.to_string())
+            .collect()
     }
 
     pub fn get_path(&self) -> Vec<String> {
@@ -358,10 +404,9 @@ impl MushroomEntryValue {
         self.value.clone()
     }
 
-    pub fn get_timestamp(&self) -> Option<u64> {
+    pub fn get_timestamp(&self) -> Option<f64> {
         self.timestamp.clone()
     }
 }
 
-pub type MushroomTable = Vec<MushroomEntryValue>;
-
+pub type MushroomTable = Vec<MushroomEntry>;

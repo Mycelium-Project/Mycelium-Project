@@ -8,7 +8,7 @@ use std::time::Duration;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::task::JoinHandle as TokioJoinHandle;
 
-use crate::mushroom_types::{MushroomTable, MushroomEntryValue};
+use crate::mushroom_types::{MushroomEntry, MushroomTable};
 use crate::THREAD_POOL;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Hash, PartialEq, Eq, Clone)]
@@ -26,7 +26,7 @@ impl NetworkTableHandlerId {
 #[derive(Debug)]
 pub struct NetworkTableHandler {
     id: NetworkTableHandlerId,
-    subscriptions: Sender<Vec<SubscriptionData>>,
+    subscriptions: Sender<Vec<SubscriptionPackage>>,
     input: Sender<MushroomTable>,
     output: Receiver<MushroomTable>,
     thread: TokioJoinHandle<()>,
@@ -34,7 +34,7 @@ pub struct NetworkTableHandler {
 impl NetworkTableHandler {
     fn new(
         id: NetworkTableHandlerId,
-        subscriptions: Sender<Vec<SubscriptionData>>,
+        subscriptions: Sender<Vec<SubscriptionPackage>>,
         input: Sender<MushroomTable>,
         output: Receiver<MushroomTable>,
         thread: TokioJoinHandle<()>,
@@ -52,30 +52,26 @@ impl NetworkTableHandler {
         self.thread.abort();
     }
 
-    pub fn post(&mut self, table: MushroomTable) {
-        self.input
-            .try_send(table)
-            .unwrap_or_else(|err| {
-                tracing::error!(
-                    "Failed to send to network table handler {}:{}",
-                    self.id.ip,
-                    self.id.port
-                );
-                tracing::error!("Error: {}", err);
-            });
+    pub fn publish(&mut self, table: MushroomTable) {
+        self.input.try_send(table).unwrap_or_else(|err| {
+            tracing::error!(
+                "Failed to send to network table handler {}:{}",
+                self.id.ip,
+                self.id.port
+            );
+            tracing::error!("Error: {}", err);
+        });
     }
 
-    pub fn subscribe(&mut self, sub_data: Vec<SubscriptionData>) {
-        self.subscriptions
-            .try_send(sub_data)
-            .unwrap_or_else(|err| {
-                tracing::error!(
-                    "Failed to send to network table handler {}:{}",
-                    self.id.ip,
-                    self.id.port
-                );
-                tracing::error!("Error: {}", err);
-            });
+    pub fn subscribe(&mut self, sub_data: Vec<SubscriptionPackage>) {
+        self.subscriptions.try_send(sub_data).unwrap_or_else(|err| {
+            tracing::error!(
+                "Failed to send to network table handler {}:{}",
+                self.id.ip,
+                self.id.port
+            );
+            tracing::error!("Error: {}", err);
+        });
     }
 
     pub fn poll(&mut self) -> Option<MushroomTable> {
@@ -88,13 +84,21 @@ impl NetworkTableHandler {
 }
 
 #[derive(Debug)]
-struct SubscriptionData {
+pub struct SubscriptionPackage {
     name: String,
     options: Option<SubscriptionOptions>,
 }
-impl Hash for SubscriptionData {
+impl Hash for SubscriptionPackage {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name.hash(state);
+    }
+}
+impl SubscriptionPackage {
+    pub fn new(name: String, options: SubscriptionOptions) -> Self {
+        Self {
+            name,
+            options: Some(options),
+        }
     }
 }
 
@@ -105,13 +109,20 @@ pub fn nt4(
 ) -> Result<NetworkTableHandler, Box<dyn std::error::Error>> {
     let (snd_pub, rec_pub) = channel::<MushroomTable>(255);
     let (snd_sub, rec_sub) = channel::<MushroomTable>(255);
-    let (subscription_sender, subscription_receiver) = channel::<Vec<SubscriptionData>>(255);
+    let (subscription_sender, subscription_receiver) = channel::<Vec<SubscriptionPackage>>(255);
     let id = NetworkTableHandlerId {
         ip: address,
         port,
         identity: identity.clone(),
     };
-    let thread = inner_nt4(address, port, identity, subscription_receiver, rec_pub, snd_sub)?;
+    let thread = inner_nt4(
+        address,
+        port,
+        identity,
+        subscription_receiver,
+        rec_pub,
+        snd_sub,
+    )?;
     let handler = NetworkTableHandler::new(id, subscription_sender, snd_pub, rec_sub, thread);
 
     Ok(handler)
@@ -121,10 +132,10 @@ fn inner_nt4(
     address: Ipv4Addr,
     port: u16,
     identity: String,
-    mut subscriptions: Receiver<Vec<SubscriptionData>>,
+    mut subscriptions: Receiver<Vec<SubscriptionPackage>>,
     mut input: Receiver<MushroomTable>,
     output: Sender<MushroomTable>,
-    ) -> Result<TokioJoinHandle<()>, Box<dyn std::error::Error>> {
+) -> Result<TokioJoinHandle<()>, Box<dyn std::error::Error>> {
     let thread = THREAD_POOL.with(|thread_pool| {
         thread_pool.spawn(async move {
             let mut subs: HashMap<String, Subscription> = HashMap::new();
@@ -158,11 +169,12 @@ fn inner_nt4(
                     }),
                 },
                 Option::from("Enoki"),
-            ).await.unwrap();
+            )
+            .await
+            .unwrap();
 
             loop {
                 let start_time = std::time::Instant::now();
-
 
                 let new_sub_data = subscriptions.try_recv();
                 if let Ok(new_sub_data) = new_sub_data {
@@ -173,19 +185,15 @@ fn inner_nt4(
                             client.unsubscribe(subs.remove(&name).unwrap()).await.ok();
                         }
                         let sub = client
-                                .subscribe_w_options(&[name.clone()], options)
-                                .await
-                                .unwrap_or_else(|err| {
-                                    tracing::error!(
-                                        "Failed to subscribe to {}:{}",
-                                        address,
-                                        port
-                                    );
-                                    tracing::error!("Error: {}", err);
-                                    panic!();
-                                });
-                            subs.insert(name.clone(), sub);
-                            tracing::info!("Subscribed to {}:{}:{}", address, port, name);
+                            .subscribe_w_options(&[name.clone()], options)
+                            .await
+                            .unwrap_or_else(|err| {
+                                tracing::error!("Failed to subscribe to {}:{}", address, port);
+                                tracing::error!("Error: {}", err);
+                                panic!();
+                            });
+                        subs.insert(name.clone(), sub);
+                        tracing::info!("Subscribed to {}:{}:{}", address, port, name);
                     }
                 }
 
@@ -194,11 +202,17 @@ fn inner_nt4(
                     for entry in table {
                         let path = entry.get_path_string();
                         if !pubs.contains_key(&path) {
-                            let topic = client.publish_topic(path.as_str(), Type::from(entry.get_value()), None).await.unwrap();
+                            let topic = client
+                                .publish_topic(path.as_str(), Type::from(entry.get_value()), None)
+                                .await
+                                .unwrap();
                             pubs.insert(path.clone(), topic);
                         }
                         let topic = pubs.get(&path).unwrap();
-                        client.publish_value(topic, &rmpv::Value::from(entry.get_value())).await.ok();
+                        client
+                            .publish_value(topic, &rmpv::Value::from(entry.get_value()))
+                            .await
+                            .ok();
                         tracing::info!("Published to {}:{}:{}", address, port, path);
                     }
                 }
@@ -206,10 +220,10 @@ fn inner_nt4(
                 let mut table_data: MushroomTable = Vec::new();
                 for sub in subs.values_mut() {
                     while let Some(msg) = sub.next().await {
-                        let entry = MushroomEntryValue::new(
+                        let entry = MushroomEntry::new(
                             msg.data.into(),
-                            MushroomEntryValue::make_path(msg.topic_name.as_str()),
-                            Some(msg.timestamp as u64)
+                            MushroomEntry::make_path(msg.topic_name.as_str()),
+                            Some(msg.timestamp as f64),
                         );
                         table_data.push(entry);
                     }
@@ -226,11 +240,14 @@ fn inner_nt4(
                 }
 
                 let elapsed = start_time.elapsed();
-                tokio::time::sleep(
-                    Duration::from_secs_f64((Duration::from_millis(15) - elapsed).as_secs_f64().clamp(0.0, 0.015))).await;
-
+                tokio::time::sleep(Duration::from_secs_f64(
+                    (Duration::from_millis(15) - elapsed)
+                        .as_secs_f64()
+                        .clamp(0.0, 0.015),
+                ))
+                .await;
             }
-
-    })});
+        })
+    });
     Ok(thread)
 }

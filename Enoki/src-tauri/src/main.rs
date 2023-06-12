@@ -1,11 +1,13 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use mushroom_types::MushroomTable;
-use network_table_handler::{NetworkTableHandlerId, NetworkTableHandler};
+use mushroom_types::{MushroomEntry, MushroomTable, MushroomTypes};
+use network_table_handler::{NetworkTableHandler, NetworkTableHandlerId, SubscriptionPackage};
+use network_tables::v4::SubscriptionOptions;
+use std::time::Instant;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::net::{Ipv4Addr, SocketAddrV4};
+use std::net::Ipv4Addr;
 
 pub mod mushroom_types;
 mod network_table_handler;
@@ -27,10 +29,27 @@ async fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             start_network_table_handler,
-            stop_network_table_handler
+            stop_network_table_handler,
+            subscribe_to_topic,
+            set_boolean_topic,
+            set_float_topic,
+            set_double_topic,
+            set_string_topic,
+            set_int_topic,
+            set_boolean_array_topic,
+            set_float_array_topic,
+            set_double_array_topic,
+            set_string_array_topic,
+            set_int_array_topic,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+fn timestamp() -> f64 {
+    let now = Instant::now();
+    let secs = now.elapsed().as_secs_f64();
+    secs
 }
 
 /**
@@ -43,13 +62,15 @@ async fn main() {
 * in typescript pass in a number
 */
 #[tauri::command]
-fn start_network_table_handler(address: [u8; 4], port: u16, identity: String) -> NetworkTableHandlerId {
+fn start_network_table_handler(
+    address: [u8; 4],
+    port: u16,
+    identity: String,
+) -> NetworkTableHandlerId {
     let ip = Ipv4Addr::from(address);
     let id = NetworkTableHandlerId::new(ip, port, identity.clone());
 
-    if let Some(handler) =
-        NETWORK_CLIENT_MAP.with(|map| map.borrow_mut().remove(&id))
-    {
+    if let Some(handler) = NETWORK_CLIENT_MAP.with(|map| map.borrow_mut().remove(&id)) {
         tracing::info!("Stopping network table handler for {}:{}", ip, port);
         handler.stop();
     }
@@ -76,4 +97,144 @@ fn stop_network_table_handler(address: [u8; 4], port: u16) {
     });
 }
 
-// TODO: Add other functions listed in NT4Handler.ts for export and in network_table_handler.rs
+#[tauri::command]
+fn subscribe_to_topic(
+    handler_id: NetworkTableHandlerId,
+    topic: String,
+    periodic: Option<f64>,
+    all: Option<bool>,
+    prefix: Option<bool>,
+) {
+    NETWORK_CLIENT_MAP.with(|map| {
+        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
+            let data = SubscriptionPackage::new(
+                topic,
+                SubscriptionOptions {
+                    all,
+                    prefix,
+                    periodic,
+                    ..Default::default()
+                },
+            );
+            handler.subscribe(vec![data])
+        }
+    });
+}
+
+#[tauri::command]
+fn set_boolean_topic(handler_id: NetworkTableHandlerId, topic: String, value: bool) {
+    NETWORK_CLIENT_MAP.with(|map| {
+        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
+            let entry = MushroomEntry::new(
+                MushroomTypes::Boolean(value), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
+            handler.publish(vec![entry])
+        }
+    });
+}
+
+#[tauri::command]
+fn set_float_topic(handler_id: NetworkTableHandlerId, topic: String, value: f64) {
+    NETWORK_CLIENT_MAP.with(|map| {
+        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
+            let entry = MushroomEntry::new(
+                MushroomTypes::Float(value), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
+            handler.publish(vec![entry])
+        }
+    });
+}
+
+#[tauri::command]
+fn set_double_topic(handler_id: NetworkTableHandlerId, topic: String, value: f64) {
+    NETWORK_CLIENT_MAP.with(|map| {
+        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
+            let entry = MushroomEntry::new(
+                MushroomTypes::Double(value), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
+            handler.publish(vec![entry])
+        }
+    });
+}
+
+#[tauri::command]
+fn set_string_topic(handler_id: NetworkTableHandlerId, topic: String, value: String) {
+    NETWORK_CLIENT_MAP.with(|map| {
+        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
+            let entry = MushroomEntry::new(
+                MushroomTypes::String(value), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
+            handler.publish(vec![entry])
+        }
+    });
+}
+
+#[tauri::command]
+fn set_int_topic(handler_id: NetworkTableHandlerId, topic: String, value: i64) {
+    NETWORK_CLIENT_MAP.with(|map| {
+        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
+            let entry = MushroomEntry::new(
+                MushroomTypes::Int(value), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
+            handler.publish(vec![entry])
+        }
+    });
+}
+
+#[tauri::command]
+fn set_boolean_array_topic(handler_id: NetworkTableHandlerId, topic: String, value: Vec<bool>) {
+    NETWORK_CLIENT_MAP.with(|map| {
+        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
+            let entry = MushroomEntry::new(
+                MushroomTypes::BooleanArray(value), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
+            handler.publish(vec![entry])
+        }
+    });
+}
+
+#[tauri::command]
+fn set_float_array_topic(handler_id: NetworkTableHandlerId, topic: String, value: Vec<f32>) {
+    NETWORK_CLIENT_MAP.with(|map| {
+        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
+            let entry = MushroomEntry::new(
+                MushroomTypes::FloatArray(value), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
+            handler.publish(vec![entry])
+        }
+    });
+}
+
+#[tauri::command]
+fn set_double_array_topic(handler_id: NetworkTableHandlerId, topic: String, value: Vec<f64>) {
+    NETWORK_CLIENT_MAP.with(|map| {
+        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
+            let entry = MushroomEntry::new(
+                MushroomTypes::DoubleArray(value), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
+            handler.publish(vec![entry])
+        }
+    });
+}
+
+#[tauri::command]
+fn set_string_array_topic(handler_id: NetworkTableHandlerId, topic: String, value: Vec<String>) {
+    NETWORK_CLIENT_MAP.with(|map| {
+        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
+            let mut entries = Vec::new();
+            for (i, v) in value.iter().enumerate() {
+                let entry = MushroomEntry::new(
+                    MushroomTypes::String(v.clone()), MushroomEntry::make_path(format!("{}/{}", topic, i).as_str()), Some(timestamp()));
+                entries.push(entry);
+            }
+            handler.publish(entries)
+        }
+    });
+}
+
+#[tauri::command]
+fn set_int_array_topic(handler_id: NetworkTableHandlerId, topic: String, value: Vec<i64>) {
+    NETWORK_CLIENT_MAP.with(|map| {
+        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
+            let mut entries = Vec::new();
+            for (i, v) in value.iter().enumerate() {
+                let entry = MushroomEntry::new(
+                    MushroomTypes::Int(*v), MushroomEntry::make_path(format!("{}/{}", topic, i).as_str()), Some(timestamp()));
+                entries.push(entry);
+            }
+            handler.publish(entries)
+        }
+    });
+}

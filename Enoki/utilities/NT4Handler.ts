@@ -102,7 +102,7 @@ export function Unsubscribe(topic: String): void {
  * TODO: backend must be implemented
  */
 export function GetEntry(topic: String): any {
-  invoke("get_entry", { topic })
+  invoke("get_topic", { topic })
     .then((entry) => {
       return entry;
     })
@@ -118,7 +118,7 @@ export function GetEntry(topic: String): any {
  * TODO: backend must be implemented
  */
 export function SetInteger(topic: String, value: number): void {
-  invoke("set_integer_entry", { topic, value }).catch(console.error);
+  invoke("set_int_topic", { topic, value }).catch(console.error);
 }
 
 /**
@@ -130,7 +130,7 @@ export function SetInteger(topic: String, value: number): void {
  * TODO: backend must be implemented
  */
 export function SetIntegerArray(topic: String, value: number[]): void {
-  invoke("set_integer_arr_entry", { topic, value }).catch(console.error);
+  invoke("set_int_array_topic", { topic, value }).catch(console.error);
 }
 
 /**
@@ -142,7 +142,7 @@ export function SetIntegerArray(topic: String, value: number[]): void {
  * TODO: backend must be implemented
  */
 export function SetFloat(topic: String, value: number): void {
-  invoke("set_float_entry", { topic, value }).catch(console.error);
+  invoke("set_float_topic", { topic, value }).catch(console.error);
 }
 
 /**
@@ -154,7 +154,7 @@ export function SetFloat(topic: String, value: number): void {
  * TODO: backend must be implemented
  */
 export function SetFloatArray(topic: String, value: number[]): void {
-  invoke("set_float_arr_entry", { topic, value }).catch(console.error);
+  invoke("set_float_array_topic", { topic, value }).catch(console.error);
 }
 
 /**
@@ -166,7 +166,7 @@ export function SetFloatArray(topic: String, value: number[]): void {
  * TODO: backend must be implemented
  */
 export function SetDouble(topic: String, value: number): void {
-    invoke("set_double_entry", { topic, value }).catch(console.error);
+    invoke("set_double_topic", { topic, value }).catch(console.error);
 }
 
 /**
@@ -178,7 +178,7 @@ export function SetDouble(topic: String, value: number): void {
  * TODO: backend must be implemented
  */
 export function SetDoubleArray(topic: String, value: number[]): void {
-    invoke("set_double_arr_entry", { topic, value }).catch(console.error);
+    invoke("set_double_array_topic", { topic, value }).catch(console.error);
 }
 
 /**
@@ -190,7 +190,7 @@ export function SetDoubleArray(topic: String, value: number[]): void {
  * TODO: backend must be implemented
  */
 export function SetBoolean(topic: String, value: boolean): void {
-  invoke("set_boolean_entry", { topic, value }).catch(console.error);
+  invoke("set_boolean_topic", { topic, value }).catch(console.error);
 }
 
 /**
@@ -202,7 +202,7 @@ export function SetBoolean(topic: String, value: boolean): void {
  * TODO: backend must be implemented
  */
 export function SetBooleanArray(topic: String, value: boolean[]): void {
-  invoke("set_boolean_arr_entry", { topic, value }).catch(console.error);
+  invoke("set_boolean_array_topic", { topic, value }).catch(console.error);
 }
 
 /**
@@ -214,7 +214,7 @@ export function SetBooleanArray(topic: String, value: boolean[]): void {
  * TODO: backend must be implemented
  */
 export function SetByteArray(topic: String, value: any[]): void {
-  invoke("set_byte_arr_entry", { topic, value }).catch(console.error);
+  invoke("set_byte_array_topic", { topic, value }).catch(console.error);
 }
 
 /**
@@ -226,7 +226,7 @@ export function SetByteArray(topic: String, value: any[]): void {
  * TODO: backend must be implemented
  */
 export function SetString(topic: String, value: String): void {
-  invoke("set_string_entry", { topic, value }).catch(console.error);
+  invoke("set_string_topic", { topic, value }).catch(console.error);
 }
 
 /**
@@ -238,5 +238,5 @@ export function SetString(topic: String, value: String): void {
  * TODO: backend must be implemented
  */
 export function SetStringArray(topic: String, value: String[]): void {
-  invoke("set_string_arr_entry", { topic, value }).catch(console.error);
+  invoke("set_string_array_topic", { topic, value }).catch(console.error);
 }
