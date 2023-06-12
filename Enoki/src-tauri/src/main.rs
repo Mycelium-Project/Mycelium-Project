@@ -163,7 +163,7 @@ fn set_string_topic(handler_id: NetworkTableHandlerId, topic: String, value: Str
     NETWORK_CLIENT_MAP.with(|map| {
         if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
             let entry = MushroomEntry::new(
-                MushroomTypes::String(value), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
+                MushroomTypes::String(value.clone()), MushroomEntry::make_path(topic.as_str()), Some(timestamp()));
             handler.publish(vec![entry]);
             tracing::info!("Set string topic {} to {}", topic, value);
         }
