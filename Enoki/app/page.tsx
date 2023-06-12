@@ -7,12 +7,11 @@ import {
   NetworkTableHandlerId,
   StartNetworkTableHandler,
   StopNetworkTableHandler,
-
 } from "@/utilities/NT4Handler";
 import { invoke } from "@tauri-apps/api/tauri";
 import { tauri } from "@tauri-apps/api";
-import { window } from "@tauri-apps/api"
-import { TauriEvent } from "@tauri-apps/api/event"
+import { window } from "@tauri-apps/api";
+import { TauriEvent } from "@tauri-apps/api/event";
 
 window.getCurrent().listen(TauriEvent.WINDOW_CLOSE_REQUESTED, () => {
   invoke("close");
@@ -91,8 +90,8 @@ export default function Home(): JSX.Element {
         </button>
 
         <button
-            className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-            onClick={SubscribeExample}
+          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
+          onClick={SubscribeExample}
         >
           <h2 className={`mb-3 text-2xl font-semibold`}>
             Subscribe{" "}
@@ -101,13 +100,14 @@ export default function Home(): JSX.Element {
             </span>
           </h2>
           <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Click here to subscribe to a value on the network tables server on localhost:5810
+            Click here to subscribe to a value on the network tables server on
+            localhost:5810
           </p>
         </button>
 
         <button
-            className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-            onClick={PublishExample}
+          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
+          onClick={PublishExample}
         >
           <h2 className={`mb-3 text-2xl font-semibold`}>
             Publish{" "}
@@ -116,7 +116,8 @@ export default function Home(): JSX.Element {
             </span>
           </h2>
           <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Click here to subscribe to a publish on the network tables server on localhost:5810
+            Click here to subscribe to a publish on the network tables server on
+            localhost:5810
           </p>
         </button>
       </div>
@@ -143,5 +144,3 @@ function SubscribeExample(): void {
 function PublishExample(): void {
   console.log("Publishing to NetworkTables");
 }
-
-

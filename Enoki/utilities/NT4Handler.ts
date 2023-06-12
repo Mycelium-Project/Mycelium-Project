@@ -3,7 +3,14 @@
 import { invoke } from "@tauri-apps/api/tauri";
 
 //create a global union for network table types
-type NetworkTableTypes = Number | String | Boolean | Number[] | String[] | Boolean[] | Uint8Array;
+type NetworkTableTypes =
+  | Number
+  | String
+  | Boolean
+  | Number[]
+  | String[]
+  | Boolean[]
+  | Uint8Array;
 
 export class NetworkTableHandlerId {
   ip: number[];
@@ -30,7 +37,7 @@ export class NetworkTableHandlerId {
 
   /**
    * Ends the network table client associated with this handlerId
-   * 
+   *
    * This function calls on the native backend and may result in a crash.
    */
   public StopNetworkTableHandler(): void {
@@ -43,7 +50,7 @@ export class NetworkTableHandlerId {
    * @param periodic the period to update the value of the topic at
    * @param all whether or not to subscribe to all entries in the topic
    * @param prefix whether or not to subscribe to all topics with the same prefix
-   * 
+   *
    * This function calls on the native backend and may result in a crash.
    */
   public Subscribe(
@@ -105,7 +112,9 @@ export function StartNetworkTableHandler(
   port: number,
   identity: string
 ): NetworkTableHandlerId {
-  invoke("start_network_table_handler", { address, port, identity }).catch(console.error);
+  invoke("start_network_table_handler", { address, port, identity }).catch(
+    console.error
+  );
   return new NetworkTableHandlerId(address, port, identity);
 }
 
@@ -121,7 +130,9 @@ export function StartNetworkTableHandler(
 export const DoesNetworkTableHandlerExist = async (
   handlerId: NetworkTableHandlerId
 ): Promise<boolean> => {
-  return (await invoke("does_network_table_handler_exist", { handlerId })) as boolean;
+  return (await invoke("does_network_table_handler_exist", {
+    handlerId,
+  })) as boolean;
 };
 
 /**
@@ -132,7 +143,9 @@ export const DoesNetworkTableHandlerExist = async (
  *
  * This function calls on the native backend and may result in a crash.
  */
-export function StopNetworkTableHandler( handlerId: NetworkTableHandlerId ): void {
+export function StopNetworkTableHandler(
+  handlerId: NetworkTableHandlerId
+): void {
   invoke("stop_network_table_handler", { handlerId }).catch(console.error);
 }
 
@@ -152,9 +165,13 @@ export function Subscribe(
   all?: boolean,
   prefix?: boolean
 ): void {
-  invoke("subscribe_to_topic", { handlerId, topic, periodic, all, prefix }).catch(
-    console.error
-  );
+  invoke("subscribe_to_topic", {
+    handlerId,
+    topic,
+    periodic,
+    all,
+    prefix,
+  }).catch(console.error);
 }
 
 /**
@@ -164,7 +181,10 @@ export function Subscribe(
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function Unsubscribe(handlerId: NetworkTableHandlerId, topic: String): void {
+export function Unsubscribe(
+  handlerId: NetworkTableHandlerId,
+  topic: String
+): void {
   invoke("unsubscribe_from_topic", { handlerId, topic }).catch(console.error);
 }
 
@@ -192,9 +212,15 @@ export function GetEntry(topic: String): any {
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetInteger(handlerId: NetworkTableHandlerId, topic: String, value: Number): void {
+export function SetInteger(
+  handlerId: NetworkTableHandlerId,
+  topic: String,
+  value: Number
+): void {
   var primValue = Math.round(value.valueOf());
-  invoke("set_int_topic", { handlerId, topic, "value": primValue }).catch(console.error);
+  invoke("set_int_topic", { handlerId, topic, value: primValue }).catch(
+    console.error
+  );
 }
 
 /**
@@ -205,9 +231,15 @@ export function SetInteger(handlerId: NetworkTableHandlerId, topic: String, valu
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetIntegerArray(handlerId: NetworkTableHandlerId, topic: String, value: Number[]): void {
+export function SetIntegerArray(
+  handlerId: NetworkTableHandlerId,
+  topic: String,
+  value: Number[]
+): void {
   var primValue = value.map((val) => Math.round(val.valueOf()));
-  invoke("set_int_array_topic", { topic, "value": primValue }).catch(console.error);
+  invoke("set_int_array_topic", { topic, value: primValue }).catch(
+    console.error
+  );
 }
 
 /**
@@ -218,9 +250,13 @@ export function SetIntegerArray(handlerId: NetworkTableHandlerId, topic: String,
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetFloat(handlerId: NetworkTableHandlerId, topic: String, value: Number): void {
+export function SetFloat(
+  handlerId: NetworkTableHandlerId,
+  topic: String,
+  value: Number
+): void {
   var primValue = value.valueOf();
-  invoke("set_float_topic", { topic, "value": primValue }).catch(console.error);
+  invoke("set_float_topic", { topic, value: primValue }).catch(console.error);
 }
 
 /**
@@ -231,10 +267,16 @@ export function SetFloat(handlerId: NetworkTableHandlerId, topic: String, value:
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetFloatArray(handlerId: NetworkTableHandlerId, topic: String, value: Number[]): void {
+export function SetFloatArray(
+  handlerId: NetworkTableHandlerId,
+  topic: String,
+  value: Number[]
+): void {
   var primValue = value.map((val) => val.valueOf());
   //maybe should clamp to f32 range
-  invoke("set_float_array_topic", { topic, "value": primValue }).catch(console.error);
+  invoke("set_float_array_topic", { topic, value: primValue }).catch(
+    console.error
+  );
 }
 
 /**
@@ -245,9 +287,13 @@ export function SetFloatArray(handlerId: NetworkTableHandlerId, topic: String, v
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetDouble(handlerId: NetworkTableHandlerId, topic: String, value: Number): void {
+export function SetDouble(
+  handlerId: NetworkTableHandlerId,
+  topic: String,
+  value: Number
+): void {
   var primValue = value.valueOf();
-  invoke("set_double_topic", { topic, "value": primValue }).catch(console.error);
+  invoke("set_double_topic", { topic, value: primValue }).catch(console.error);
 }
 
 /**
@@ -258,9 +304,15 @@ export function SetDouble(handlerId: NetworkTableHandlerId, topic: String, value
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetDoubleArray(handlerId: NetworkTableHandlerId, topic: String, value: Number[]): void {
+export function SetDoubleArray(
+  handlerId: NetworkTableHandlerId,
+  topic: String,
+  value: Number[]
+): void {
   var primValue = value.map((val) => val.valueOf());
-  invoke("set_double_array_topic", { topic, "value": primValue }).catch(console.error);
+  invoke("set_double_array_topic", { topic, value: primValue }).catch(
+    console.error
+  );
 }
 
 /**
@@ -271,9 +323,13 @@ export function SetDoubleArray(handlerId: NetworkTableHandlerId, topic: String, 
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetBoolean(handlerId: NetworkTableHandlerId, topic: String, value: Boolean): void {
+export function SetBoolean(
+  handlerId: NetworkTableHandlerId,
+  topic: String,
+  value: Boolean
+): void {
   var primValue = value.valueOf();
-  invoke("set_boolean_topic", { topic, "value": primValue }).catch(console.error);
+  invoke("set_boolean_topic", { topic, value: primValue }).catch(console.error);
 }
 
 /**
@@ -284,9 +340,15 @@ export function SetBoolean(handlerId: NetworkTableHandlerId, topic: String, valu
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetBooleanArray(handlerId: NetworkTableHandlerId, topic: String, value: Boolean[]): void {
+export function SetBooleanArray(
+  handlerId: NetworkTableHandlerId,
+  topic: String,
+  value: Boolean[]
+): void {
   var primValue = value.map((val) => val.valueOf());
-  invoke("set_boolean_array_topic", { topic, "value": primValue }).catch(console.error);
+  invoke("set_boolean_array_topic", { topic, value: primValue }).catch(
+    console.error
+  );
 }
 
 /**
@@ -297,9 +359,15 @@ export function SetBooleanArray(handlerId: NetworkTableHandlerId, topic: String,
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetByteArray(handlerId: NetworkTableHandlerId, topic: String, value: Uint8Array): void {
+export function SetByteArray(
+  handlerId: NetworkTableHandlerId,
+  topic: String,
+  value: Uint8Array
+): void {
   var byteArray: number[] = Array.from(value);
-  invoke("set_byte_array_topic", { topic, "value": byteArray }).catch(console.error);
+  invoke("set_byte_array_topic", { topic, value: byteArray }).catch(
+    console.error
+  );
 }
 
 /**
@@ -310,9 +378,13 @@ export function SetByteArray(handlerId: NetworkTableHandlerId, topic: String, va
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetString(handlerId: NetworkTableHandlerId, topic: String, value: String): void {
+export function SetString(
+  handlerId: NetworkTableHandlerId,
+  topic: String,
+  value: String
+): void {
   var primValue = value.valueOf();
-  invoke("set_string_topic", { topic, "value": primValue }).catch(console.error);
+  invoke("set_string_topic", { topic, value: primValue }).catch(console.error);
 }
 
 /**
@@ -323,7 +395,13 @@ export function SetString(handlerId: NetworkTableHandlerId, topic: String, value
  * This function calls on the native backend and may result in a crash.
  * TODO: backend must be implemented
  */
-export function SetStringArray(handlerId: NetworkTableHandlerId, topic: String, value: String[]): void {
+export function SetStringArray(
+  handlerId: NetworkTableHandlerId,
+  topic: String,
+  value: String[]
+): void {
   var primValue = value.map((val) => val.valueOf());
-  invoke("set_string_array_topic", { topic, "value": primValue }).catch(console.error);
+  invoke("set_string_array_topic", { topic, value: primValue }).catch(
+    console.error
+  );
 }
