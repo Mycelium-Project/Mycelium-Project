@@ -24,6 +24,7 @@ tokio = { version = "1.28.2", features = ["rt", "sync", "net", "time", "macros",
 tracing-subscriber = "0.3.17"
 tracing = "0.1.27"
 rmpv = "1.0.0"
+single_value_channel = "1.2.2"
 
 
 [features]

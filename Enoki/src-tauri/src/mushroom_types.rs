@@ -1,4 +1,13 @@
-use serde::Serialize;
+use std::{collections::HashMap, hash::Hash, time::Instant};
+
+use serde::{Serialize, ser::SerializeSeq};
+
+/// Microseconds
+type MushroomTimeStamp = u128;
+
+pub fn now() -> MushroomTimeStamp {
+    Instant::now().elapsed().as_micros()
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum MushroomTypes {
@@ -394,15 +403,51 @@ impl From<MushroomTypes> for network_tables::v4::message_type::Type {
 //     }
 // }
 
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub struct MushroomPath {
+    path: Vec<String>
+}
+
+impl From<MushroomPath> for String {
+    fn from(m: MushroomPath) -> Self {
+        m.path.join("/")
+    }
+}
+
+impl From<String> for MushroomPath {
+    fn from(m: String) -> Self {
+        Self {
+            path: m.split("/").map(|s| s.to_string()).collect()
+        }
+    }
+}
+
+impl From<&str> for MushroomPath {
+    fn from(m: &str) -> Self {
+        Self {
+            path: m.split("/").map(|s| s.to_string()).collect()
+        }
+    }
+}
+
+impl Serialize for MushroomPath {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        String::from(self.clone()).serialize(serializer)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct MushroomEntry {
     value: MushroomTypes,
-    path: Vec<String>,
+    path: MushroomPath,
     timestamp: Option<f64>,
 }
 
 impl MushroomEntry {
-    pub fn new(value: MushroomTypes, path: Vec<String>, timestamp: Option<f64>) -> Self {
+    pub fn new(value: MushroomTypes, path: MushroomPath, timestamp: Option<f64>) -> Self {
         Self {
             value,
             path,
@@ -410,20 +455,8 @@ impl MushroomEntry {
         }
     }
 
-    ///Takes a path separated by `/` and retuns a vector of strings
-    pub fn make_path(slash_separated_path: &str) -> Vec<String> {
-        slash_separated_path
-            .split('/')
-            .map(|s| s.to_string())
-            .collect()
-    }
-
-    pub fn get_path(&self) -> Vec<String> {
+    pub fn get_path(&self) -> MushroomPath {
         self.path.clone()
-    }
-
-    pub fn get_path_string(&self) -> String {
-        self.path.join("/")
     }
 
     pub fn get_value(&self) -> MushroomTypes {
@@ -435,4 +468,98 @@ impl MushroomEntry {
     }
 }
 
-pub type MushroomTable = Vec<MushroomEntry>;
+#[derive(Clone, Debug)]
+pub struct MushroomTable {
+    timestamp: MushroomTimeStamp,
+    //could use a set but this is easier
+    entries: Vec<MushroomEntry>,
+    entry_paths: HashMap<MushroomPath, usize>
+}
+
+impl MushroomTable {
+    pub fn new(timestamp: MushroomTimeStamp) -> Self {
+        Self {
+            timestamp,
+            entries: Vec::new(),
+            entry_paths: HashMap::new(),
+        }
+    }
+
+    pub fn new_from_entries(timestamp: MushroomTimeStamp, entries: Vec<MushroomEntry>) -> Self {
+        let mut entry_paths = HashMap::new();
+        for (i, entry) in entries.iter().enumerate() {
+            entry_paths.insert(entry.get_path().into(), i);
+        }
+        Self {
+            timestamp,
+            entries,
+            entry_paths,
+        }
+    }
+
+    pub fn add_entry(&mut self, entry: MushroomEntry) {
+        if self.has_entry(&entry.get_path()) {
+            let index = self.entry_paths.get(&entry.get_path()).unwrap();
+            self.entries[*index] = entry;
+        } else {
+            let path = entry.get_path();
+            self.entries.push(entry);
+            self.entry_paths.insert(path, self.entries.len() - 1);
+        }
+    }
+
+    pub fn get_entry(&self, path: &MushroomPath) -> Option<&MushroomEntry> {
+        self.entry_paths.get(path).map(|i| &self.entries[*i])
+    }
+
+    pub fn get_entries(&self) -> &Vec<MushroomEntry> {
+        &self.entries
+    }
+
+    pub fn get_timestamp(&self) -> MushroomTimeStamp {
+        self.timestamp
+    }
+
+    pub fn has_entry(&self, path: &MushroomPath) -> bool {
+        self.entry_paths.contains_key(&path)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
+    pub fn update_entries(&mut self, other: &MushroomTable) {
+        for entry in other.get_entries() {
+            self.add_entry(entry.clone());
+        }
+    }
+
+    pub fn update_timestamp(&mut self, other: &MushroomTable) {
+        self.timestamp = other.get_timestamp();
+    }
+
+    pub fn update_all(&mut self, other: &MushroomTable) {
+        self.update_entries(other);
+        self.update_timestamp(other);
+    }
+}
+
+impl Serialize for MushroomTable {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer
+    {
+        let mut map = serializer.serialize_seq(Some(self.entries.len()))?;
+        for entry in &self.entries {
+            map.serialize_element(entry)?;
+        }
+        map.end()
+    }
+}
+
+
+
+
+
+
+// pub type MushroomTable = HashSet<MushroomEntry>;

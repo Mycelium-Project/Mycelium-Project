@@ -1,6 +1,7 @@
 use network_tables::v4::client_config::default_should_reconnect;
 use network_tables::v4::subscription::SubscriptionOptions;
 use network_tables::v4::{Client, Config, PublishedTopic, Subscription, Type};
+use single_value_channel::{Updater as SingleUpdater, channel_starting_with as single_channel, Receiver as SingleReceiver};
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::hash::Hash;
@@ -8,6 +9,7 @@ use std::net::{Ipv4Addr, SocketAddrV4};
 use std::time::Duration;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::task::JoinHandle as TokioJoinHandle;
+
 
 use crate::mushroom_types::{MushroomEntry, MushroomTable};
 use crate::THREAD_POOL;
@@ -34,15 +36,15 @@ pub struct NetworkTableHandler {
     id: NetworkTableHandlerId,
     subscriptions: Sender<Vec<SubscriptionPackage>>,
     input: Sender<MushroomTable>,
-    output: Receiver<MushroomTable>,
-    thread: TokioJoinHandle<()>,
+    output: SingleReceiver<MushroomTable>,
+    thread: TokioJoinHandle<()>
 }
 impl NetworkTableHandler {
     fn new(
         id: NetworkTableHandlerId,
         subscriptions: Sender<Vec<SubscriptionPackage>>,
         input: Sender<MushroomTable>,
-        output: Receiver<MushroomTable>,
+        output: SingleReceiver<MushroomTable>,
         thread: TokioJoinHandle<()>,
     ) -> Self {
         Self {
@@ -78,13 +80,13 @@ impl NetworkTableHandler {
         });
     }
 
-    pub fn poll(&mut self) -> Option<MushroomTable> {
-        self.output.try_recv().ok()
+    pub fn poll(&mut self) -> MushroomTable {
+        self.output.latest().clone()
     }
 
-    pub fn get_id(&self) -> &NetworkTableHandlerId {
-        &self.id
-    }
+    // pub fn get_id(&self) -> &NetworkTableHandlerId {
+    //     &self.id
+    // }
 }
 
 #[derive(Debug)]
@@ -112,7 +114,7 @@ pub fn nt4(
     identity: String,
 ) -> Result<NetworkTableHandler, Box<dyn std::error::Error>> {
     let (snd_pub, rec_pub) = channel::<MushroomTable>(255);
-    let (snd_sub, rec_sub) = channel::<MushroomTable>(255);
+    let (rec_sub, snd_sub) = single_channel(MushroomTable::new(0));
     let (subscription_sender, subscription_receiver) = channel::<Vec<SubscriptionPackage>>(255);
     let id = NetworkTableHandlerId {
         ip: address.octets(),
@@ -138,7 +140,7 @@ fn inner_nt4(
     identity: String,
     mut subscriptions: Receiver<Vec<SubscriptionPackage>>,
     mut input: Receiver<MushroomTable>,
-    output: Sender<MushroomTable>,
+    output: SingleUpdater<MushroomTable>,
 ) -> Result<TokioJoinHandle<()>, Box<dyn std::error::Error>> {
     let thread = THREAD_POOL.with(|thread_pool| {
         thread_pool.borrow().as_ref().unwrap().spawn(async move {
@@ -177,6 +179,9 @@ fn inner_nt4(
             .await
             .unwrap();
 
+            //use client timestamp
+            let mut table = MushroomTable::new(0);
+
             loop {
                 let start_time = std::time::Instant::now();
 
@@ -203,8 +208,8 @@ fn inner_nt4(
 
                 let new_pub_data = input.try_recv();
                 if let Ok(table) = new_pub_data {
-                    for entry in table {
-                        let path = entry.get_path_string();
+                    for entry in table.get_entries() {
+                        let path = String::from(entry.get_path());
                         if !pubs.contains_key(&path) {
                             let topic = client
                                 .publish_topic(path.as_str(), Type::from(entry.get_value()), None)
@@ -221,19 +226,21 @@ fn inner_nt4(
                     }
                 }
 
-                let mut table_data: MushroomTable = Vec::new();
+                //use client timestamp
+                let mut new_table_data: MushroomTable = MushroomTable::new(0);
                 for sub in subs.values_mut() {
                     while let Some(msg) = sub.next().await {
                         let entry = MushroomEntry::new(
                             msg.data.into(),
-                            MushroomEntry::make_path(msg.topic_name.as_str()),
+                            msg.topic_name.into(),
                             Some(msg.timestamp as f64),
                         );
-                        table_data.push(entry);
+                        new_table_data.add_entry(entry)
                     }
                 }
-                if !table_data.is_empty() {
-                    output.try_send(table_data).unwrap_or_else(|err| {
+                table.update_all(&new_table_data);
+                if !new_table_data.is_empty() {
+                    output.update(table.clone()).unwrap_or_else(|err| {
                         tracing::error!(
                             "Failed to send to network table handler {}:{}",
                             address,

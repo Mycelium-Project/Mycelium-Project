@@ -59,6 +59,13 @@ export class NetworkTableHandlerId {
     Unsubscribe(this, topic);
   }
 
+
+  /**
+   * Sets the value of a topic on the network table client associated with this handlerId.
+   * infers the type of the value and calls the appropriate function
+   * @param topic the topic to set the value of
+   * @param value the value to set the topic to
+   */
   public SetEntry(topic: String, value: NetworkTableTypes): void {
     if (value instanceof Number) {
       if (value.valueOf() % 1 === 0) {
@@ -126,9 +133,7 @@ export const DoesNetworkTableHandlerExist = async (
 
 /**
  * Ends a network table client connected to the specified address and port
- * @param address an array of 4 numbers representing the ipv4 address of the server
- * formatted as [0-255, 0-255, 0-255, 0-255] and interpreted as [a, b, c, d] -> a.b.c.d
- * @param port a number representing the port of the server, must be between 0 and 65535
+ * @param handlerId the handlerId of the network table client to stop
  *
  * This function calls on the native backend and may result in a crash.
  */
@@ -138,6 +143,7 @@ export function StopNetworkTableHandler( handlerId: NetworkTableHandlerId ): voi
 
 /**
  * Subscribes to a topic on the network table client associated with the specified handlerId
+ * @param handlerId the handlerId of the network table client to set the value of
  * @param topic the topic to subscribe to
  * @param periodic the period to update the value of the topic at
  * @param all whether or not to subscribe to all entries in the topic
@@ -159,171 +165,155 @@ export function Subscribe(
 
 /**
  * Unsubscribes from a topic
+ * @param handlerId the handlerId of the network table client to set the value of
  * @param topic the topic to unsubscribe from
  *
  * This function calls on the native backend and may result in a crash.
- * TODO: backend must be implemented
  */
 export function Unsubscribe(handlerId: NetworkTableHandlerId, topic: String): void {
   invoke("unsubscribe_from_topic", { handlerId, topic }).catch(console.error);
 }
 
 /**
- * Gets the value of a topic
- * @param topic the topic to get the value of
- * @return the value of the topic
- *
- * This function calls on the native backend and may result in a crash.
- * TODO: backend must be implemented
- */
-export function GetEntry(topic: String): any {
-  invoke("get_topic", { topic })
-    .then((entry) => {
-      return entry;
-    })
-    .catch(console.error);
-}
-
-/**
  * Sets the value of an integer topic
+ * @param handlerId the handlerId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the integer value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
- * TODO: backend must be implemented
  */
 export function SetInteger(handlerId: NetworkTableHandlerId, topic: String, value: Number): void {
-  var primValue = Math.round(value.valueOf());
+  let primValue = Math.round(value.valueOf());
   invoke("set_int_topic", { handlerId, topic, "value": primValue }).catch(console.error);
 }
 
 /**
  * Sets the value of an integer array topic
+ * @param handlerId the handlerId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the integer array value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
- * TODO: backend must be implemented
  */
 export function SetIntegerArray(handlerId: NetworkTableHandlerId, topic: String, value: Number[]): void {
-  var primValue = value.map((val) => Math.round(val.valueOf()));
-  invoke("set_int_array_topic", { topic, "value": primValue }).catch(console.error);
+  let primValue = value.map((val) => Math.round(val.valueOf()));
+  invoke("set_int_array_topic", { handlerId, topic, "value": primValue }).catch(console.error);
 }
 
 /**
  * Sets the value of a floating point topic, which is a f32 in rust
+ * @param handlerId the handlerId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the floating point value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
- * TODO: backend must be implemented
  */
 export function SetFloat(handlerId: NetworkTableHandlerId, topic: String, value: Number): void {
-  var primValue = value.valueOf();
-  invoke("set_float_topic", { topic, "value": primValue }).catch(console.error);
+  let primValue = value.valueOf();
+  invoke("set_float_topic", { handlerId, topic, "value": primValue }).catch(console.error);
 }
 
 /**
  * Sets the value of a floating point array topic, which is a f32 in rust
+ * @param handlerId the handlerId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the floating point array value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
- * TODO: backend must be implemented
  */
 export function SetFloatArray(handlerId: NetworkTableHandlerId, topic: String, value: Number[]): void {
-  var primValue = value.map((val) => val.valueOf());
+  let primValue = value.map((val) => val.valueOf());
   //maybe should clamp to f32 range
-  invoke("set_float_array_topic", { topic, "value": primValue }).catch(console.error);
+  invoke("set_float_array_topic", { handlerId, topic, "value": primValue }).catch(console.error);
 }
 
 /**
  * Sets the value of a double topic, which is a f64 in rust
+ * @param handlerId the handlerId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the double value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
- * TODO: backend must be implemented
  */
 export function SetDouble(handlerId: NetworkTableHandlerId, topic: String, value: Number): void {
-  var primValue = value.valueOf();
-  invoke("set_double_topic", { topic, "value": primValue }).catch(console.error);
+  let primValue = value.valueOf();
+  invoke("set_double_topic", { handlerId, topic, "value": primValue }).catch(console.error);
 }
 
 /**
  * Sets the value of a double array topic, which is a f64 in rust
+ * @param handlerId the handlerId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the double array value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
- * TODO: backend must be implemented
  */
 export function SetDoubleArray(handlerId: NetworkTableHandlerId, topic: String, value: Number[]): void {
-  var primValue = value.map((val) => val.valueOf());
-  invoke("set_double_array_topic", { topic, "value": primValue }).catch(console.error);
+  let primValue = value.map((val) => val.valueOf());
+  invoke("set_double_array_topic", { handlerId, topic, "value": primValue }).catch(console.error);
 }
 
 /**
  * Sets the value of a boolean topic
+ * @param handlerId the handlerId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the boolean value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
- * TODO: backend must be implemented
  */
 export function SetBoolean(handlerId: NetworkTableHandlerId, topic: String, value: Boolean): void {
-  var primValue = value.valueOf();
-  invoke("set_boolean_topic", { topic, "value": primValue }).catch(console.error);
+  let primValue = value.valueOf();
+  invoke("set_boolean_topic", { handlerId, topic, "value": primValue }).catch(console.error);
 }
 
 /**
  * Sets the value of a boolean array topic
+ * @param handlerId the handlerId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the boolean array value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
- * TODO: backend must be implemented
  */
 export function SetBooleanArray(handlerId: NetworkTableHandlerId, topic: String, value: Boolean[]): void {
-  var primValue = value.map((val) => val.valueOf());
-  invoke("set_boolean_array_topic", { topic, "value": primValue }).catch(console.error);
+  let primValue = value.map((val) => val.valueOf());
+  invoke("set_boolean_array_topic", { handlerId, topic, "value": primValue }).catch(console.error);
 }
 
 /**
  * Sets the value of a byte array topic
+ * @param handlerId the handlerId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the byte array value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
- * TODO: backend must be implemented
  */
 export function SetByteArray(handlerId: NetworkTableHandlerId, topic: String, value: Uint8Array): void {
-  var byteArray: number[] = Array.from(value);
-  invoke("set_byte_array_topic", { topic, "value": byteArray }).catch(console.error);
+  let byteArray: number[] = Array.from(value);
+  invoke("set_byte_array_topic", { handlerId, topic, "value": byteArray }).catch(console.error);
 }
 
 /**
  * Sets the value of a string topic
+ * @param handlerId the handlerId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the string value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
- * TODO: backend must be implemented
  */
 export function SetString(handlerId: NetworkTableHandlerId, topic: String, value: String): void {
-  var primValue = value.valueOf();
-  invoke("set_string_topic", { topic, "value": primValue }).catch(console.error);
+  let primValue = value.valueOf();
+  invoke("set_string_topic", { handlerId, topic, "value": primValue }).catch(console.error);
 }
 
 /**
  * Sets the value of a string array topic
+ * @param handlerId the handlerId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the string array value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
- * TODO: backend must be implemented
  */
 export function SetStringArray(handlerId: NetworkTableHandlerId, topic: String, value: String[]): void {
-  var primValue = value.map((val) => val.valueOf());
-  invoke("set_string_array_topic", { topic, "value": primValue }).catch(console.error);
+  let primValue = value.map((val) => val.valueOf());
+  invoke("set_string_array_topic", { handlerId, topic, "value": primValue }).catch(console.error);
 }
