@@ -23,6 +23,7 @@ network-tables = { git = "https://github.com/nab138/network-tables-rs", version 
 tokio = { version = "1.28.2", features = ["rt", "sync", "net", "time", "macros", "rt-multi-thread", "parking_lot"] }
 tracing-subscriber = "0.3.17"
 tracing = "0.1.27"
+rmpv = "1.0.0"
 
 
 [features]

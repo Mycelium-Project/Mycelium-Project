@@ -1,11 +1,13 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::net::{Ipv4Addr, SocketAddrV4};
+use mushroom_types::MushroomTable;
+use network_table_handler::{NetworkTableHandlerId, NetworkTableHandler};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use tokio::task::JoinHandle as TokioJoinHandle;
+use std::net::{Ipv4Addr, SocketAddrV4};
 
+pub mod mushroom_types;
 mod network_table_handler;
 
 thread_local! {
@@ -16,14 +18,17 @@ thread_local! {
         .build()
         .unwrap();
 
-    static NETWORK_CLIENT_MAP: RefCell<HashMap<SocketAddrV4, TokioJoinHandle<()>>> = RefCell::new(HashMap::new());
+    static NETWORK_CLIENT_MAP: RefCell<HashMap<NetworkTableHandlerId, NetworkTableHandler>> = RefCell::new(HashMap::new());
 }
-
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::fmt::init();
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![start_network_table_handler, stop_network_table_handler])
+        .invoke_handler(tauri::generate_handler![
+            start_network_table_handler,
+            stop_network_table_handler
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -38,34 +43,35 @@ async fn main() {
 * in typescript pass in a number
 */
 #[tauri::command]
-fn start_network_table_handler(address: [u8; 4], port: u16) {
+fn start_network_table_handler(address: [u8; 4], port: u16, identity: String) -> NetworkTableHandlerId {
     let ip = Ipv4Addr::from(address);
+    let id = NetworkTableHandlerId::new(ip, port, identity.clone());
 
-    if let Some(thread) = NETWORK_CLIENT_MAP.with(|map| map.borrow_mut().remove(&SocketAddrV4::new(ip, port))) {
+    if let Some(handler) =
+        NETWORK_CLIENT_MAP.with(|map| map.borrow_mut().remove(&id))
+    {
         tracing::info!("Stopping network table handler for {}:{}", ip, port);
-        thread.abort();
+        handler.stop();
     }
 
-    let thread = THREAD_POOL.with(|pool| {
-        pool.spawn(async move {
-            match network_table_handler::nt4(ip, port).await {
-                Ok(_) => println!("Network table handler started successfully"),
-                Err(e) => println!("Error starting network table handler: {}", e),
-            }
-        })});
-    NETWORK_CLIENT_MAP.with(|map| {
-        map.borrow_mut().insert(SocketAddrV4::new(ip, port), thread);
-    });
-}
+    tracing::info!("Starting network table handler for {}:{}", ip, port);
+    let handler = network_table_handler::nt4(ip, port, identity).unwrap();
 
+    NETWORK_CLIENT_MAP.with(|map| {
+        map.borrow_mut().insert(id.clone(), handler);
+    });
+
+    return id;
+}
 
 #[tauri::command]
 fn stop_network_table_handler(address: [u8; 4], port: u16) {
     let ip = Ipv4Addr::from(address);
+    let id = NetworkTableHandlerId::new(ip, port, "".to_string());
     NETWORK_CLIENT_MAP.with(|map| {
-        if let Some(thread) = map.borrow_mut().remove(&SocketAddrV4::new(ip, port)) {
+        if let Some(handler) = map.borrow_mut().remove(&id) {
             tracing::info!("Stopping network table handler for {}:{}", ip, port);
-            thread.abort();
+            handler.stop();
         }
     });
 }
