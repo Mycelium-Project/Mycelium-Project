@@ -13,12 +13,12 @@ type NetworkTableTypes =
   | Uint8Array;
 
 export type DisplayTableEntry = {
-    client_id: string;
-    key: string;
-    type: string;
-    value: NetworkTableTypes;
-    last_updated: number;
-}
+  client_id: string;
+  key: string;
+  type: string;
+  value: NetworkTableTypes;
+  last_updated: number;
+};
 
 export class NetworkTableHandlerId {
   ip: number[];
