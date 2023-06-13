@@ -11,7 +11,7 @@ To be built in rust & kotlin for the robot side, and rust & TS/TSX with Next & T
 - [ ] Create basic UI
 - [ ] Create basic plugin system
 - [ ] Begin rust rio logger
-- [ ] Begin rust coprocessor logger
+- [X] Begin rust coprocessor logger
 - [ ] Create logger JNIs
 - [ ] Create Kotlin user side for logger
 - [ ] Properly handle multithreaded asynchronous multi NT handlers T-T
