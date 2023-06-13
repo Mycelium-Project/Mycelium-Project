@@ -1815,7 +1815,7 @@ dependencies = [
 [[package]]
 name = "network-tables"
 version = "0.1.4"
-source = "git+https://github.com/oh-yes-0-fps/network-tables-rs#696bcceacb92c91c25963c5a42cc680109c0ed93"
+source = "git+https://github.com/oh-yes-0-fps/network-tables-rs#7532e05b65c09a0d37dcec78a1a2742b3f6cf7cc"
 dependencies = [
  "futures-util",
  "parking_lot",
