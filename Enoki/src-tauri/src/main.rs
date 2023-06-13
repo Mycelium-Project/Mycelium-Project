@@ -1,7 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use mushroom_types::{MushroomEntry, MushroomTypes};
+use mushroom_types::{MushroomEntry, MushroomTypes, MushroomPath};
 use network_table_handler::{NetworkTableHandler, NetworkTableHandlerId, SubscriptionPackage};
 use network_tables::v4::SubscriptionOptions;
 use std::cell::RefCell;
@@ -44,6 +44,8 @@ async fn main() {
             set_string_array_topic,
             set_int_array_topic,
             get_subbed_entries_values,
+            get_handler_timestamp,
+            get_subbed_entry_value,
             close
         ])
         .run(tauri::generate_context!())
@@ -274,9 +276,37 @@ fn set_int_array_topic(handler_id: NetworkTableHandlerId, topic: String, value: 
 fn get_subbed_entries_values(handler_id: NetworkTableHandlerId) -> MushroomTable {
     NETWORK_CLIENT_MAP.with(|map| {
         if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
+            tracing::info!("Getting subbed entries values for {}", handler_id);
             handler.poll()
         } else {
+            tracing::warn!("No network table handler found for {}", handler_id);
             MushroomTable::new(0)
+        }
+    })
+}
+
+#[tauri::command]
+fn get_subbed_entry_value(handler_id: NetworkTableHandlerId, path: MushroomPath) -> Option<MushroomEntry> {
+    NETWORK_CLIENT_MAP.with(|map| {
+        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
+            tracing::info!("Getting subbed entry value for {}", handler_id);
+            handler.poll().get_entry(&path)
+        } else {
+            tracing::warn!("No network table handler found for {}", handler_id);
+            None
+        }
+    })
+}
+
+#[tauri::command]
+fn get_handler_timestamp(handler_id: NetworkTableHandlerId) -> f64 {
+    NETWORK_CLIENT_MAP.with(|map| {
+        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
+            tracing::info!("Getting handler timestamp for {}", handler_id);
+            handler.poll().get_timestamp() as f64 / 1000000_f64
+        } else {
+            tracing::warn!("No network table handler found for {}", handler_id);
+            0_f64
         }
     })
 }

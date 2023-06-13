@@ -8,7 +8,7 @@ use std::hash::Hash;
 use std::net::{Ipv4Addr, SocketAddrV4};
 use std::time::Duration;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
-use tokio::task::JoinHandle as TokioJoinHandle;
+use tokio::task::{JoinHandle as TokioJoinHandle};
 
 
 use crate::mushroom_types::{MushroomEntry, MushroomTable};
@@ -175,13 +175,12 @@ fn inner_nt4(
                         })
                     }),
                 },
-                Option::from("Enoki"),
+                identity,
             )
             .await
             .unwrap();
 
-            //use client timestamp
-            let mut table = MushroomTable::new(0);
+            let mut table = MushroomTable::new(client.real_server_time());
 
             loop {
                 let start_time = std::time::Instant::now();
@@ -228,28 +227,26 @@ fn inner_nt4(
                 }
 
                 //use client timestamp
-                let mut new_table_data: MushroomTable = MushroomTable::new(0);
+                let mut new_table_data: MushroomTable = MushroomTable::new(client.real_server_time());
                 for sub in subs.values_mut() {
-                    while let Some(msg) = sub.next().await {
+                    while let Ok(msg) = sub.try_next().await {
                         let entry = MushroomEntry::new(
                             msg.data.into(),
                             msg.topic_name.into(),
-                            Some(msg.timestamp as f64),
+                            Some(client.to_real_time(msg.timestamp) as f64),
                         );
-                        new_table_data.add_entry(entry)
+                        new_table_data.add_entry(entry);
                     }
                 }
                 table.update_all(&new_table_data);
-                if !new_table_data.is_empty() {
-                    output.update(table.clone()).unwrap_or_else(|err| {
-                        tracing::error!(
-                            "Failed to send to network table handler {}:{}",
-                            address,
-                            port
-                        );
-                        tracing::error!("Error: {}", err);
-                    });
-                }
+                output.update(table.clone()).unwrap_or_else(|err| {
+                    tracing::error!(
+                        "Failed to send to network table handler {}:{}",
+                        address,
+                        port
+                    );
+                    tracing::error!("Error: {}", err);
+                });
 
                 let elapsed = start_time.elapsed();
                 tokio::time::sleep(Duration::from_secs_f64(

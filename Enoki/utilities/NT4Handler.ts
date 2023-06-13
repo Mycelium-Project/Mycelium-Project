@@ -28,11 +28,8 @@ export class NetworkTableHandlerId {
    *
    * This function calls on the native backend and may result in a crash.
    */
-  public DoesNetworkTableHandlerExist(): boolean {
-    DoesNetworkTableHandlerExist(this).then((result) => {
-      return result;
-    });
-    return false;
+  public async doesNetworkTableHandlerExist(): Promise<boolean> {
+    return DoesNetworkTableHandlerExist(this);
   }
 
   /**
@@ -40,7 +37,7 @@ export class NetworkTableHandlerId {
    *
    * This function calls on the native backend and may result in a crash.
    */
-  public StopNetworkTableHandler(): void {
+  public stopNetworkTableHandler(): void {
     StopNetworkTableHandler(this);
   }
 
@@ -53,7 +50,7 @@ export class NetworkTableHandlerId {
    *
    * This function calls on the native backend and may result in a crash.
    */
-  public Subscribe(
+  public subscribe(
     topic: String,
     periodic?: number,
     all?: boolean,
@@ -62,7 +59,7 @@ export class NetworkTableHandlerId {
     Subscribe(this, topic, periodic, all, prefix);
   }
 
-  public Unsubscribe(topic: String): void {
+  public unsubscribe(topic: String): void {
     Unsubscribe(this, topic);
   }
 
@@ -73,7 +70,7 @@ export class NetworkTableHandlerId {
    * @param topic the topic to set the value of
    * @param value the value to set the topic to
    */
-  public SetEntry(topic: String, value: NetworkTableTypes): void {
+  public setEntry(topic: String, value: NetworkTableTypes): void {
     if (value instanceof Number) {
       if (value.valueOf() % 1 === 0) {
         SetInteger(this, topic, value);
@@ -127,6 +124,138 @@ export class NetworkTableHandlerId {
       }
     }
   }
+
+  public async getEntries(): Promise<TableEntry[]> {
+    return GetEntries(this);
+  }
+
+  public async getEntry(topic: String): Promise<TableEntry> {
+    return GetEntry(this, topic);
+  }
+}
+
+export class EntryValue {
+  value: NetworkTableTypes;
+  type: string;
+  constructor(value: NetworkTableTypes, type: string) {
+    this.value = value;
+    this.type = type;
+  }
+
+  public getValue(): NetworkTableTypes {
+    return this.value;
+  }
+
+  public isFloat(): boolean {
+    return this.type === "Float";
+  }
+
+  public isDouble(): boolean {
+    return this.type === "Double";
+  }
+
+  public isInt(): boolean {
+    return this.type === "Int";
+  }
+
+  public isBoolean(): boolean {
+    return this.type === "Boolean";
+  }
+
+  public isString(): boolean {
+    return this.type === "String";
+  }
+
+  public isByteArray(): boolean {
+    return this.type === "ByteArray";
+  }
+
+  public isFloatArray(): boolean {
+    return this.type === "FloatArray";
+  }
+
+  public isDoubleArray(): boolean {
+    return this.type === "DoubleArray";
+  }
+
+  public isIntArray(): boolean {
+    return this.type === "IntArray";
+  }
+
+  public isBooleanArray(): boolean {
+    return this.type === "BooleanArray";
+  }
+
+  public isStringArray(): boolean {
+    return this.type === "StringArray";
+  }
+
+  public getAsFloat(): number {
+    return this.value as number;
+  }
+
+  public getAsDouble(): number {
+    return this.value as number;
+  }
+
+  public getAsInt(): number {
+    return this.value as number;
+  }
+
+  public getAsBoolean(): boolean {
+    return this.value as boolean;
+  }
+
+  public getAsString(): string {
+    return this.value as string;
+  }
+
+  public getAsByteArray(): number[] {
+    return this.value as number[];
+  }
+
+  public getAsFloatArray(): number[] {
+    return this.value as number[];
+  }
+
+  public getAsDoubleArray(): number[] {
+    return this.value as number[];
+  }
+
+  public getAsIntArray(): number[] {
+    return this.value as number[];
+  }
+
+  public getAsBooleanArray(): boolean[] {
+    return this.value as boolean[];
+  }
+
+  public getAsStringArray(): string[] {
+    return this.value as string[];
+  }
+}
+
+export class TableEntry {
+  key: string;
+  timestamp: number;
+  value: EntryValue;
+  constructor(key: string, timestamp: number, value: EntryValue) {
+    this.key = key;
+    this.timestamp = timestamp;
+    this.value = value;
+  }
+
+  public getKey(): string {
+    return this.key;
+  }
+
+  public getTimestamp(): number {
+    return this.timestamp;
+  }
+
+  public getValue(): EntryValue {
+    return this.value;
+  }
 }
 
 /**
@@ -157,12 +286,12 @@ export function StartNetworkTableHandler(
  *
  * This function calls on the native backend and may result in a crash.
  */
-export const DoesNetworkTableHandlerExist = async (
+export async function DoesNetworkTableHandlerExist(
   handlerId: NetworkTableHandlerId
-): Promise<boolean> => {
-  return (await invoke("does_network_table_handler_exist", {
+): Promise<boolean> {
+  return invoke("does_network_table_handler_exist", {
     handlerId,
-  })) as boolean;
+  }).catch(console.error) as Promise<boolean>;
 };
 
 /**
@@ -417,4 +546,46 @@ export function SetStringArray(
   invoke("set_string_array_topic", { handlerId, topic, value: primValue }).catch(
     console.error
   );
+}
+
+/**
+ * Gets all the subbed topic entries for a given handlerId
+ * @param handlerId the handlerId of the network table client to get the entries of
+ * 
+ * @returns an array of TableEntry objects
+ */
+export async function GetEntries(
+  handlerId: NetworkTableHandlerId
+): Promise<TableEntry[]> {
+  return invoke("get_subbed_entries_values", { handlerId }).catch(console.error) as Promise<TableEntry[]>;
+}
+
+/**
+ * Gets the value of a topic for a given handlerId and path
+ * @param handlerId the handlerId of the network table client to get the value of
+ * @param path the path of the topic to get the value of
+ * 
+ * @returns the TableEntry of the topic
+ */
+export async function GetEntry(
+  handlerId: NetworkTableHandlerId,
+  path: String
+): Promise<TableEntry> {
+  return invoke("get_subbed_entry_value", { handlerId, path }).catch(console.error) as Promise<TableEntry>;
+}
+
+
+/**
+ * Gets the server timestamp of the server that the client associated with handlerId is connected to
+ * @param handlerId the handlerId of the network table client to get the server timestamp of
+ * 
+ * @returns seconds since the unix epoch
+ */
+export function GetServerTimestamp(
+  handlerId: NetworkTableHandlerId
+): number {
+  invoke("get_handler_timestamp", { handlerId }).then((timestamp) => {
+    return timestamp;
+  });
+  return 0;
 }

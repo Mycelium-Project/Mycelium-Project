@@ -117,6 +117,22 @@ export default function Home(): JSX.Element {
             localhost:5810
           </p>
         </button>
+
+        <button
+          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
+          onClick={PollSubscriptions}
+        >
+          <h2 className={`mb-3 text-2xl font-semibold`}>
+            GetSubbed{" "}
+            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
+              -&gt;
+            </span>
+          </h2>
+          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
+            Click here to poll all subbed data on the network tables server on
+            localhost:5810
+          </p>
+        </button>
       </div>
     </main>
   );
@@ -127,19 +143,25 @@ var testTable: NetworkTableHandlerId;
 
 function StartNTHandler(): void {
   console.log("Starting NetworkTables");
-  testTable = StartNetworkTableHandler([127, 0, 0, 1], 5810, "test");
+  testTable = StartNetworkTableHandler([127, 0, 0, 1], 5810, "Enoki-test");
 }
 function StopNT4Handler(): void {
   console.log("Stopping NetworkTables");
-  testTable.StopNetworkTableHandler();
+  testTable.stopNetworkTableHandler();
 }
 
 function SubscribeExample(): void {
   console.log("Subscribing to NetworkTables");
-  testTable.Subscribe("")
+  testTable.subscribe("", 0.05, true, true)
 }
 
 function PublishExample(): void {
   console.log("Publishing to NetworkTables");
-  testTable.SetEntry("/test", 1);
+  testTable.setEntry("/test", 1);
+}
+
+async function PollSubscriptions(): Promise<void> {
+  console.log("Polling Subscriptions");
+  let entries = await testTable.getEntries();
+  console.log(entries);
 }

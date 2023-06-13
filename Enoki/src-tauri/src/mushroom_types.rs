@@ -1,6 +1,6 @@
-use std::{collections::HashMap, hash::Hash, time::Instant};
+use std::{collections::HashMap, hash::Hash, time::Instant, fmt::Display};
 
-use serde::{Serialize, ser::SerializeSeq};
+use serde::{Serialize, ser::{SerializeSeq, SerializeMap}, Deserialize};
 
 /// Microseconds
 type MushroomTimeStamp = u128;
@@ -31,18 +31,98 @@ impl Serialize for MushroomTypes {
         S: serde::Serializer,
     {
         match self {
-            MushroomTypes::ByteArray(v) => serializer.serialize_bytes(v),
-            MushroomTypes::Protobuf(v) => serializer.serialize_bytes(v),
-            MushroomTypes::Float(v) => serializer.serialize_f64(*v),
-            MushroomTypes::FloatArray(v) => serializer.collect_seq(v),
-            MushroomTypes::Double(v) => serializer.serialize_f64(*v),
-            MushroomTypes::DoubleArray(v) => serializer.collect_seq(v),
-            MushroomTypes::Int(v) => serializer.serialize_i64(*v),
-            MushroomTypes::IntArray(v) => serializer.collect_seq(v),
-            MushroomTypes::String(v) => serializer.serialize_str(v),
-            MushroomTypes::StringArray(v) => serializer.collect_seq(v),
-            MushroomTypes::Boolean(v) => serializer.serialize_bool(*v),
-            MushroomTypes::BooleanArray(v) => serializer.collect_seq(v),
+            MushroomTypes::ByteArray(v) => {
+                let mut map = serializer.serialize_map(Some(2))?;
+                map.serialize_entry("type", "ByteArray")?;
+                map.serialize_entry("value", v)?;
+                map.end()
+            },
+            MushroomTypes::Protobuf(v) => {
+                let mut map = serializer.serialize_map(Some(2))?;
+                map.serialize_entry("type", "Protobuf")?;
+                map.serialize_entry("value", v)?;
+                map.end()
+            },
+            MushroomTypes::Float(v) => {
+                let mut map = serializer.serialize_map(Some(2))?;
+                map.serialize_entry("type", "Float")?;
+                map.serialize_entry("value", v)?;
+                map.end()
+            },
+            MushroomTypes::FloatArray(v) => {
+                let mut map = serializer.serialize_map(Some(2))?;
+                map.serialize_entry("type", "FloatArray")?;
+                map.serialize_entry("value", v)?;
+                map.end()
+            },
+            MushroomTypes::Double(v) => {
+                let mut map = serializer.serialize_map(Some(2))?;
+                map.serialize_entry("type", "Double")?;
+                map.serialize_entry("value", v)?;
+                map.end()
+            },
+            MushroomTypes::DoubleArray(v) => {
+                let mut map = serializer.serialize_map(Some(2))?;
+                map.serialize_entry("type", "DoubleArray")?;
+                map.serialize_entry("value", v)?;
+                map.end()
+            },
+            MushroomTypes::Int(v) => {
+                let mut map = serializer.serialize_map(Some(2))?;
+                map.serialize_entry("type", "Int")?;
+                map.serialize_entry("value", v)?;
+                map.end()
+            },
+            MushroomTypes::IntArray(v) => {
+                let mut map = serializer.serialize_map(Some(2))?;
+                map.serialize_entry("type", "IntArray")?;
+                map.serialize_entry("value", v)?;
+                map.end()
+            },
+            MushroomTypes::String(v) => {
+                let mut map = serializer.serialize_map(Some(2))?;
+                map.serialize_entry("type", "String")?;
+                map.serialize_entry("value", v)?;
+                map.end()
+            },
+            MushroomTypes::StringArray(v) => {
+                let mut map = serializer.serialize_map(Some(2))?;
+                map.serialize_entry("type", "StringArray")?;
+                map.serialize_entry("value", v)?;
+                map.end()
+            },
+            MushroomTypes::Boolean(v) => {
+                let mut map = serializer.serialize_map(Some(2))?;
+                map.serialize_entry("type", "Boolean")?;
+                map.serialize_entry("value", v)?;
+                map.end()
+            },
+            MushroomTypes::BooleanArray(v) => {
+                let mut map = serializer.serialize_map(Some(2))?;
+                map.serialize_entry("type", "BooleanArray")?;
+                map.serialize_entry("value", v)?;
+                map.end()
+            },
+        }
+
+    }
+}
+
+impl Display for MushroomTypes {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MushroomTypes::ByteArray(v) => write!(f, "ByteArray({:?})", v),
+            MushroomTypes::Protobuf(v) => write!(f, "Protobuf({:?})", v),
+            MushroomTypes::Float(v) => write!(f, "Float({:?})", v),
+            MushroomTypes::FloatArray(v) => write!(f, "FloatArray({:?})", v),
+            MushroomTypes::Double(v) => write!(f, "Double({:?})", v),
+            MushroomTypes::DoubleArray(v) => write!(f, "DoubleArray({:?})", v),
+            MushroomTypes::Int(v) => write!(f, "Int({:?})", v),
+            MushroomTypes::IntArray(v) => write!(f, "IntArray({:?})", v),
+            MushroomTypes::String(v) => write!(f, "String({:?})", v),
+            MushroomTypes::StringArray(v) => write!(f, "StringArray({:?})", v),
+            MushroomTypes::Boolean(v) => write!(f, "Boolean({:?})", v),
+            MushroomTypes::BooleanArray(v) => write!(f, "BooleanArray({:?})", v),
         }
     }
 }
@@ -317,7 +397,7 @@ impl From<rmpv::Value> for MushroomTypes {
             rmpv::Value::F32(v) => MushroomTypes::Float(v as f64),
             rmpv::Value::F64(v) => MushroomTypes::Double(v),
             rmpv::Value::Integer(v) => MushroomTypes::Int(v.as_i64().unwrap_or_default()),
-            rmpv::Value::String(v) => MushroomTypes::String(v.to_string()),
+            rmpv::Value::String(v) => MushroomTypes::String(v.to_string().replace("\"", "")),
             rmpv::Value::Boolean(v) => MushroomTypes::Boolean(v),
             rmpv::Value::Binary(v) => MushroomTypes::ByteArray(v),
             rmpv::Value::Array(v) => {
@@ -439,11 +519,41 @@ impl Serialize for MushroomPath {
     }
 }
 
+impl<'a> Deserialize<'a> for MushroomPath {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'a>,
+    {
+        String::deserialize(deserializer).map(|s| s.into())
+    }
+
+    fn deserialize_in_place<D>(deserializer: D, place: &mut Self) -> Result<(), D::Error>
+    where
+        D: serde::Deserializer<'a>,
+    {
+        // Default implementation just delegates to `deserialize` impl.
+        *place = Deserialize::deserialize(deserializer)?;
+        Ok(())
+    }
+}
+
+impl Display for MushroomPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", String::from(self.clone()))
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct MushroomEntry {
     value: MushroomTypes,
     path: MushroomPath,
     timestamp: Option<f64>,
+}
+
+impl Display for MushroomEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.path, self.value)
+    }
 }
 
 impl MushroomEntry {
@@ -474,6 +584,16 @@ pub struct MushroomTable {
     //could use a set but this is easier
     entries: Vec<MushroomEntry>,
     entry_paths: HashMap<MushroomPath, usize>
+}
+
+impl Display for MushroomTable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Table at {}", self.timestamp)?;
+        for entry in &self.entries {
+            writeln!(f, "{}", entry)?;
+        }
+        Ok(())
+    }
 }
 
 impl MushroomTable {
@@ -508,8 +628,13 @@ impl MushroomTable {
         }
     }
 
-    pub fn get_entry(&self, path: &MushroomPath) -> Option<&MushroomEntry> {
-        self.entry_paths.get(path).map(|i| &self.entries[*i])
+    pub fn get_entry(&self, path: &MushroomPath) -> Option<MushroomEntry> {
+        if self.has_entry(path) {
+            let index = self.entry_paths.get(path).unwrap();
+            Some(self.entries[*index].clone())
+        } else {
+            None
+        }
     }
 
     pub fn get_entries(&self) -> &Vec<MushroomEntry> {
@@ -526,6 +651,10 @@ impl MushroomTable {
 
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.entries.len()
     }
 
     pub fn update_entries(&mut self, other: &MushroomTable) {
