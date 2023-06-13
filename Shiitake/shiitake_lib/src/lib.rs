@@ -2,9 +2,9 @@ use std::cell::RefCell;
 
 use jni::JNIEnv;
 
-use jni::objects::{JClass};
+use jni::objects::{JClass, JString};
 
-use jni::sys::{jboolean, jdouble};
+use jni::sys::{jboolean, jdouble, jint};
 
 use sysinfo::{NetworkExt, System, SystemExt, CpuExt};
 
@@ -17,6 +17,7 @@ thread_local! {
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 struct MeasuredStats {
     cpu_usage: f64,
+    cpu_freq: f64,
     memory_usage: f64,
     network_usage_out: f64,
     network_usage_in: f64,
@@ -33,7 +34,7 @@ fn jbool(b: bool) -> jboolean {
 }
 
 #[no_mangle]
-pub extern "system" fn Java_Shiitake_init_measurements<'local>(
+pub extern "system" fn Java_Shiitake_init_1measurements<'local>(
     env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> jboolean {
@@ -61,6 +62,7 @@ pub extern "system" fn Java_Shiitake_init_measurements<'local>(
                 stats.network_usage_in += data.received() as f64;
                 stats.network_usage_out += data.transmitted() as f64;
             }
+            stats.cpu_freq = system.global_cpu_info().frequency() as f64;
 
             updater.update(stats).ok();
 
@@ -80,7 +82,7 @@ pub extern "system" fn Java_Shiitake_init_measurements<'local>(
 
 /// Returns the latest CPU usage as a percentage
 #[no_mangle]
-pub extern "system" fn Java_Shiitake_cpu_usage<'local>(
+pub extern "system" fn Java_Shiitake_cpu_1usage<'local>(
     env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> jdouble {
@@ -91,9 +93,22 @@ pub extern "system" fn Java_Shiitake_cpu_usage<'local>(
     })
 }
 
+/// Returns the latest CPU frequency in Hz
+#[no_mangle]
+pub extern "system" fn Java_Shiitake_cpu_1frequency<'local>(
+    env: JNIEnv<'local>,
+    _class: JClass<'local>,
+) -> jdouble {
+    STATS.with(|stats| {
+        stats.borrow_mut().as_mut().map(|stats| {
+            stats.latest().cpu_freq
+        }).unwrap_or(0.0)
+    })
+}
+
 /// Returns the amount of memory used by the system in bytes
 #[no_mangle]
-pub extern "system" fn Java_Shiitake_memory_usage<'local>(
+pub extern "system" fn Java_Shiitake_memory_1usage<'local>(
     env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> jdouble {
@@ -106,7 +121,7 @@ pub extern "system" fn Java_Shiitake_memory_usage<'local>(
 
 /// Returns the amount of network data received by the system in bytes
 #[no_mangle]
-pub extern "system" fn Java_Shiitake_network_usage_in<'local>(
+pub extern "system" fn Java_Shiitake_network_1usage_1in<'local>(
     env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> jdouble {
@@ -119,7 +134,7 @@ pub extern "system" fn Java_Shiitake_network_usage_in<'local>(
 
 /// Returns the amount of network data transmitted by the system in bytes
 #[no_mangle]
-pub extern "system" fn Java_Shiitake_network_usage_out<'local>(
+pub extern "system" fn Java_Shiitake_network_1usage_1out<'local>(
     env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> jdouble {
@@ -128,4 +143,43 @@ pub extern "system" fn Java_Shiitake_network_usage_out<'local>(
             stats.latest().network_usage_out
         }).unwrap_or(0.0)
     })
+}
+
+/// Retursn the os summary
+#[no_mangle]
+pub extern "system" fn Java_Shiitake_os_1version<'local>(
+    env: JNIEnv<'local>,
+    _class: JClass<'local>,
+) -> JString<'local> {
+    let mut sys = System::new();
+    sys.refresh_all();
+    let name = sys.name().unwrap_or("Unknown".to_string());
+    let os_version = sys.os_version().unwrap_or("Unknown".to_string());
+    let os_kernel = sys.kernel_version().unwrap_or("Unknown".to_string());
+    let os = format!("name: {}, version: {}, kernel: {}", name, os_version, os_kernel);
+    env.new_string(os).expect("Couldn't create java string")
+}
+
+/// Returns cpu cores
+#[no_mangle]
+pub extern "system" fn Java_Shiitake_cpu_1cores<'local>(
+    env: JNIEnv<'local>,
+    _class: JClass<'local>,
+) -> jint {
+    let mut sys = System::new();
+    sys.refresh_all();
+    let cores = sys.cpus().len() as i32;
+    cores
+}
+
+/// Returns the total amount of memory in bytes
+#[no_mangle]
+pub extern "system" fn Java_Shiitake_memory_1total<'local>(
+    env: JNIEnv<'local>,
+    _class: JClass<'local>,
+) -> jdouble {
+    let mut sys = System::new();
+    sys.refresh_all();
+    let total = sys.total_memory() as f64;
+    total
 }
