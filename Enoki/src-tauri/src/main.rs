@@ -32,6 +32,7 @@ async fn main() {
         .invoke_handler(tauri::generate_handler![
             start_network_table_handler,
             stop_network_table_handler,
+            does_network_table_handler_exist,
             subscribe_to_topic,
             set_boolean_topic,
             set_float_topic,
@@ -91,6 +92,11 @@ fn start_network_table_handler(
     });
 
     return id;
+}
+
+#[tauri::command]
+fn does_network_table_handler_exist(handler_id: NetworkTableHandlerId) -> bool {
+    NETWORK_CLIENT_MAP.with(|map| map.borrow().contains_key(&handler_id))
 }
 
 #[tauri::command]

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { JSX } from "react";
 import {
+  DoesNetworkTableHandlerExist,
   NetworkTableHandlerId,
   StartNetworkTableHandler,
   TableEntry,
@@ -124,10 +125,26 @@ export default function Home(): JSX.Element {
 
         <button
           className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
+          onClick={DoesHandlerExist}
+        >
+          <h2 className={`mb-3 text-2xl font-semibold`}>
+            Is Connected?{" "}
+            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
+              -&gt;
+            </span>
+          </h2>
+          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
+            Click here to check if a handler exists for the network tables
+            server on localhost:5810
+          </p>
+        </button>
+
+        <button
+          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
           onClick={PollSubscriptions}
         >
           <h2 className={`mb-3 text-2xl font-semibold`}>
-            GetSubbed{" "}
+            Get Subbed{" "}
             <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
               -&gt;
             </span>
@@ -152,6 +169,12 @@ function StartNTHandler(): void {
 function StopNT4Handler(): void {
   console.log("Stopping NetworkTables");
   testTable.stopNetworkTableHandler();
+}
+
+function DoesHandlerExist(): void {
+  DoesNetworkTableHandlerExist(testTable).then((result: boolean) =>
+    console.log(result)
+  );
 }
 
 function SubscribeExample(): void {

@@ -269,12 +269,16 @@ export function StartNetworkTableHandler(
  * @param handlerId the handlerId of the network table client to check
  *
  * @return a boolean representing whether the client is connected
+ * if the client handlerId is undefined it will return false by default.
  *
  * This function calls on the native backend and may result in a crash.
  */
 export async function DoesNetworkTableHandlerExist(
   handlerId: NetworkTableHandlerId
 ): Promise<boolean> {
+  if (handlerId == undefined) {
+    return false;
+  }
   return invoke("does_network_table_handler_exist", {
     handlerId,
   }).catch(console.error) as Promise<boolean>;
