@@ -11,6 +11,7 @@ import {
 import { invoke } from "@tauri-apps/api/tauri";
 import { window } from "@tauri-apps/api";
 import { TauriEvent } from "@tauri-apps/api/event";
+import Test from "@/app/pages/network_tables";
 
 window
   .getCurrent()
@@ -58,6 +59,8 @@ export default function Home(): JSX.Element {
           priority
         />
       </div>
+
+     <Test />
 
       <div className="mb-32 grid text-center lg:mb-0 lg:grid-cols-4 lg:text-left">
         <button
