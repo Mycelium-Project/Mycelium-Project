@@ -5,15 +5,19 @@ import { JSX } from "react";
 import {
   NetworkTableHandlerId,
   StartNetworkTableHandler,
+  TableEntry,
 } from "@/utilities/NT4Handler";
 import { invoke } from "@tauri-apps/api/tauri";
 import { window } from "@tauri-apps/api";
 import { TauriEvent } from "@tauri-apps/api/event";
 
-window.getCurrent().listen(TauriEvent.WINDOW_CLOSE_REQUESTED, (): boolean => {
-  invoke("close").then();
-  return true;
-}).then();
+window
+  .getCurrent()
+  .listen(TauriEvent.WINDOW_CLOSE_REQUESTED, (): boolean => {
+    invoke("close").then();
+    return true;
+  })
+  .then();
 
 export default function Home(): JSX.Element {
   return (
@@ -139,7 +143,7 @@ export default function Home(): JSX.Element {
 }
 
 //create a test table variable
-var testTable: NetworkTableHandlerId;
+let testTable: NetworkTableHandlerId;
 
 function StartNTHandler(): void {
   console.log("Starting NetworkTables");
@@ -152,7 +156,7 @@ function StopNT4Handler(): void {
 
 function SubscribeExample(): void {
   console.log("Subscribing to NetworkTables");
-  testTable.subscribe("", 0.05, true, true)
+  testTable.subscribe("", 0.05, true, true);
 }
 
 function PublishExample(): void {
@@ -162,6 +166,6 @@ function PublishExample(): void {
 
 async function PollSubscriptions(): Promise<void> {
   console.log("Polling Subscriptions");
-  let entries = await testTable.getEntries();
+  let entries: TableEntry[] = await testTable.getEntries();
   console.log(entries);
 }
