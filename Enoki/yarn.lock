@@ -147,10 +147,10 @@
     "@jridgewell/resolve-uri" "3.1.0"
     "@jridgewell/sourcemap-codec" "1.4.14"
 
-"@material-tailwind/react@^2.0.2":
-  version "2.0.2"
-  resolved "https://registry.yarnpkg.com/@material-tailwind/react/-/react-2.0.2.tgz#b6d2bcaf0dd935f7e7ec5a3ce727d0db18952409"
-  integrity sha512-s3tBN3ow/DvSsdyLPpO5ckhZlvhtM42qwWk7x306uXXGGot9lK3IGzm69QaNWGoYKTjPoj7cqzprQ+Duz54C9g==
+"@material-tailwind/react@^2.0.3":
+  version "2.0.3"
+  resolved "https://registry.yarnpkg.com/@material-tailwind/react/-/react-2.0.3.tgz#bc602cd74bc0894a18b3a00b56c15e92776af83d"
+  integrity sha512-GS9ML4lmE4cBu6fqGXJ5KFM8sTWWSARnrFjlchXvpl3QpqmfjajiCYgZfqvKMuJxNXRqWUEh6DM8Q8rm9OX5ZA==
   dependencies:
     "@floating-ui/react" "^0.19.0"
     "@heroicons/react" "^2.0.13"
