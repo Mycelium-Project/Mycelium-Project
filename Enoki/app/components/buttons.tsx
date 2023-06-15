@@ -1,5 +1,11 @@
 import { JSX } from "react";
 
+/**
+ * A large UI button that calls a function, with a title and subtext that matches the rest of the app
+ * @param props The action to call when the button is clicked, the title of the button, and the subtext of the button
+ *
+ * @returns A large UI button that calls a function, with a title and subtext
+ */
 export function LargeButton(props: any): JSX.Element {
   return (
     <button

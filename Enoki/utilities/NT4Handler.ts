@@ -285,7 +285,7 @@ export async function DoesNetworkTableHandlerExist(
   handlerId: NetworkTableHandlerId
 ): Promise<boolean> {
   if (handlerId == undefined) {
-    console.log("handlerId is undefined");
+    console.error("handlerId is undefined T-T");
     return false;
   }
   return invoke("does_network_table_handler_exist", {
@@ -303,7 +303,7 @@ export function StopNetworkTableHandler(
   handlerId: NetworkTableHandlerId
 ): void {
   if (handlerId == undefined) {
-    console.log("handlerId is undefined");
+    console.error("handlerId is undefined T-T");
     return;
   }
   invoke("stop_network_table_handler", { handlerId }).catch(console.error);
@@ -326,6 +326,10 @@ export function Subscribe(
   all?: boolean,
   prefix?: boolean
 ): void {
+  if (handlerId == undefined) {
+    console.error("handlerId is undefined T-T");
+    return;
+  }
   invoke("subscribe_to_topic", {
     handlerId,
     topic,
@@ -346,6 +350,10 @@ export function Unsubscribe(
   handlerId: NetworkTableHandlerId,
   topic: String
 ): void {
+  if (handlerId == undefined) {
+    console.error("handlerId is undefined T-T");
+    return;
+  }
   invoke("unsubscribe_from_topic", { handlerId, topic }).catch(console.error);
 }
 
@@ -362,6 +370,10 @@ export function SetInteger(
   topic: String,
   value: Number
 ): void {
+  if (handlerId == undefined) {
+    console.error("handlerId is undefined T-T");
+    return;
+  }
   let primValue: number = Math.round(value.valueOf());
   invoke("set_int_topic", { handlerId, topic, value: primValue }).catch(
     console.error
@@ -381,6 +393,10 @@ export function SetIntegerArray(
   topic: String,
   value: Number[]
 ): void {
+  if (handlerId == undefined) {
+    console.error("handlerId is undefined T-T");
+    return;
+  }
   let primValue: number[] = value.map((val: Number) =>
     Math.round(val.valueOf())
   );
@@ -402,6 +418,10 @@ export function SetFloat(
   topic: String,
   value: Number
 ): void {
+  if (handlerId == undefined) {
+    console.error("handlerId is undefined T-T");
+    return;
+  }
   let primValue: number = value.valueOf();
   invoke("set_float_topic", { handlerId, topic, value: primValue }).catch(
     console.error
@@ -421,8 +441,12 @@ export function SetFloatArray(
   topic: String,
   value: Number[]
 ): void {
+  if (handlerId == undefined) {
+    console.error("handlerId is undefined T-T");
+    return;
+  }
   let primValue: number[] = value.map((val: Number) => val.valueOf());
-  //maybe should clamp to f32 range
+  //TODO: clamp to f32 range
   invoke("set_float_array_topic", { handlerId, topic, value: primValue }).catch(
     console.error
   );
@@ -441,6 +465,10 @@ export function SetDouble(
   topic: String,
   value: Number
 ): void {
+  if (handlerId == undefined) {
+    console.error("handlerId is undefined T-T");
+    return;
+  }
   let primValue: number = value.valueOf();
   invoke("set_double_topic", { handlerId, topic, value: primValue }).catch(
     console.error
@@ -460,6 +488,10 @@ export function SetDoubleArray(
   topic: String,
   value: Number[]
 ): void {
+  if (handlerId == undefined) {
+    console.error("handlerId is undefined T-T");
+    return;
+  }
   let primValue: number[] = value.map((val: Number) => val.valueOf());
   invoke("set_double_array_topic", {
     handlerId,
@@ -481,6 +513,10 @@ export function SetBoolean(
   topic: String,
   value: Boolean
 ): void {
+  if (handlerId == undefined) {
+    console.error("handlerId is undefined T-T");
+    return;
+  }
   let primValue: boolean = value.valueOf();
   invoke("set_boolean_topic", { handlerId, topic, value: primValue }).catch(
     console.error
@@ -500,6 +536,10 @@ export function SetBooleanArray(
   topic: String,
   value: Boolean[]
 ): void {
+  if (handlerId == undefined) {
+    console.error("handlerId is undefined T-T");
+    return;
+  }
   let primValue: boolean[] = value.map((val: Boolean) => val.valueOf());
   invoke("set_boolean_array_topic", {
     handlerId,
@@ -521,6 +561,10 @@ export function SetByteArray(
   topic: String,
   value: Uint8Array
 ): void {
+  if (handlerId == undefined) {
+    console.error("handlerId is undefined T-T");
+    return;
+  }
   let byteArray: number[] = Array.from(value);
   invoke("set_byte_array_topic", { handlerId, topic, value: byteArray }).catch(
     console.error
@@ -540,6 +584,10 @@ export function SetString(
   topic: String,
   value: String
 ): void {
+  if (handlerId == undefined) {
+    console.error("handlerId is undefined T-T");
+    return;
+  }
   let primValue: string = value.valueOf();
   invoke("set_string_topic", { handlerId, topic, value: primValue }).catch(
     console.error
@@ -559,6 +607,10 @@ export function SetStringArray(
   topic: String,
   value: String[]
 ): void {
+  if (handlerId == undefined) {
+    console.error("handlerId is undefined T-T");
+    return;
+  }
   let primValue: string[] = value.map((val: String) => val.valueOf());
   invoke("set_string_array_topic", {
     handlerId,
@@ -576,6 +628,10 @@ export function SetStringArray(
 export async function GetEntries(
   handlerId: NetworkTableHandlerId
 ): Promise<TableEntry[]> {
+  if (handlerId == undefined) {
+    console.error("handlerId is undefined T-T");
+    return [];
+  }
   return invoke("get_subbed_entries_values", { handlerId }).catch(
     console.error
   ) as Promise<TableEntry[]>;
@@ -592,6 +648,10 @@ export async function GetEntry(
   handlerId: NetworkTableHandlerId,
   path: String
 ): Promise<TableEntry> {
+  if (handlerId == undefined) {
+    console.log("handlerId is undefined T-T");
+    return {} as TableEntry;
+  }
   return invoke("get_subbed_entry_value", { handlerId, path }).catch(
     console.error
   ) as Promise<TableEntry>;
@@ -603,9 +663,14 @@ export async function GetEntry(
  *
  * @returns seconds since the unix epoch
  */
-export function GetServerTimestamp(handlerId: NetworkTableHandlerId): number {
-  invoke("get_handler_timestamp", { handlerId }).then((timestamp) => {
-    return timestamp;
-  });
-  return 0;
+export function GetServerTimestamp(
+  handlerId: NetworkTableHandlerId
+): Promise<number> {
+  if (handlerId == undefined) {
+    console.log("handlerId is undefined T-T");
+    return Promise.resolve(0);
+  }
+  return invoke("get_handler_timestamp", { handlerId }).catch(
+    console.error
+  ) as Promise<number>;
 }
