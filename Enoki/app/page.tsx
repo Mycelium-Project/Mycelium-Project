@@ -11,7 +11,7 @@ import {
 import { invoke } from "@tauri-apps/api/tauri";
 import { window } from "@tauri-apps/api";
 import { TauriEvent } from "@tauri-apps/api/event";
-import NetworkTable from "@/app/components/network_tables";
+import NetworkTable from "@/app/components/network_table";
 
 window
   .getCurrent()
