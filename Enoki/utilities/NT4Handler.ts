@@ -12,6 +12,14 @@ type NetworkTableTypes =
   | Boolean[]
   | Uint8Array;
 
+export type DisplayTableEntry = {
+  client_id: string;
+  key: string;
+  type: string;
+  value: NetworkTableTypes;
+  last_updated: number;
+};
+
 export class NetworkTableHandlerId {
   ip: number[];
   port: number;
@@ -24,7 +32,7 @@ export class NetworkTableHandlerId {
 
   /**
    * Checks if the network table client associated with this handlerId is running
-   * @return a boolean representing whether or not the client is connected
+   * @return a boolean representing whether the client is connected
    *
    * This function calls on the native backend and may result in a crash.
    */
@@ -63,7 +71,6 @@ export class NetworkTableHandlerId {
     Unsubscribe(this, topic);
   }
 
-
   /**
    * Sets the value of a topic on the network table client associated with this handlerId.
    * infers the type of the value and calls the appropriate function
@@ -83,7 +90,7 @@ export class NetworkTableHandlerId {
       SetBoolean(this, topic, value);
     } else if (value instanceof Uint8Array) {
       SetByteArray(this, topic, value);
-    } else if (value instanceof Array) {
+    } else {
       if (value.length > 0) {
         if (value[0] instanceof Number) {
           if (value[0].valueOf() % 1 === 0) {
@@ -108,19 +115,6 @@ export class NetworkTableHandlerId {
         }
       } else {
         SetDoubleArray(this, topic, []);
-      }
-    } else {
-      //primitive catch
-      if (typeof value === "number") {
-        if (value % 1 === 0) {
-          SetInteger(this, topic, new Number(value));
-        } else {
-          SetDouble(this, topic, new Number(value));
-        }
-      } else if (typeof value === "string") {
-        SetString(this, topic, new String(value));
-      } else if (typeof value === "boolean") {
-        SetBoolean(this, topic, new Boolean(value));
       }
     }
   }
@@ -263,6 +257,7 @@ export class TableEntry {
  * @param address an array of 4 numbers representing the ipv4 address of the server
  * formatted as [0-255, 0-255, 0-255, 0-255] and interpreted as [a, b, c, d] -> a.b.c.d
  * @param port a number representing the port of the server, must be between 0 and 65535
+ * @param identity a string representing the identity of the client
  *
  * This function calls on the native backend and may result in a crash.
  */
@@ -278,21 +273,24 @@ export function StartNetworkTableHandler(
 }
 
 /**
- * Checks if a network table client is connected to the specified address and port
- * @param address an array of 4 numbers representing the ipv4 address of the server
- * formatted as [0-255, 0-255, 0-255, 0-255] and interpreted as [a, b, c, d] -> a.b.c.d
- * @param port a number representing the port of the server, must be between 0 and 65535
- * @return a boolean representing whether or not the client is connected
+ * Checks if a network table client is connected to the specified NetworkTableHandlerId
+ * @param handlerId the handlerId of the network table client to check
+ *
+ * @return a boolean representing whether the client is connected
+ * if the client handlerId is undefined it will return false by default.
  *
  * This function calls on the native backend and may result in a crash.
  */
 export async function DoesNetworkTableHandlerExist(
   handlerId: NetworkTableHandlerId
 ): Promise<boolean> {
+  if (handlerId == undefined) {
+    return false;
+  }
   return invoke("does_network_table_handler_exist", {
     handlerId,
   }).catch(console.error) as Promise<boolean>;
-};
+}
 
 /**
  * Ends a network table client connected to the specified address and port
@@ -359,7 +357,7 @@ export function SetInteger(
   topic: String,
   value: Number
 ): void {
-  let primValue = Math.round(value.valueOf());
+  let primValue: number = Math.round(value.valueOf());
   invoke("set_int_topic", { handlerId, topic, value: primValue }).catch(
     console.error
   );
@@ -378,7 +376,9 @@ export function SetIntegerArray(
   topic: String,
   value: Number[]
 ): void {
-  let primValue = value.map((val) => Math.round(val.valueOf()));
+  let primValue: number[] = value.map((val: Number) =>
+    Math.round(val.valueOf())
+  );
   invoke("set_int_array_topic", { handlerId, topic, value: primValue }).catch(
     console.error
   );
@@ -397,8 +397,10 @@ export function SetFloat(
   topic: String,
   value: Number
 ): void {
-  let primValue = value.valueOf();
-  invoke("set_float_topic", { handlerId, topic, value: primValue }).catch(console.error);
+  let primValue: number = value.valueOf();
+  invoke("set_float_topic", { handlerId, topic, value: primValue }).catch(
+    console.error
+  );
 }
 
 /**
@@ -414,7 +416,7 @@ export function SetFloatArray(
   topic: String,
   value: Number[]
 ): void {
-  let primValue = value.map((val) => val.valueOf());
+  let primValue: number[] = value.map((val: Number) => val.valueOf());
   //maybe should clamp to f32 range
   invoke("set_float_array_topic", { handlerId, topic, value: primValue }).catch(
     console.error
@@ -434,8 +436,10 @@ export function SetDouble(
   topic: String,
   value: Number
 ): void {
-  let primValue = value.valueOf();
-  invoke("set_double_topic", { handlerId, topic, value: primValue }).catch(console.error);
+  let primValue: number = value.valueOf();
+  invoke("set_double_topic", { handlerId, topic, value: primValue }).catch(
+    console.error
+  );
 }
 
 /**
@@ -451,10 +455,12 @@ export function SetDoubleArray(
   topic: String,
   value: Number[]
 ): void {
-  let primValue = value.map((val) => val.valueOf());
-  invoke("set_double_array_topic", { handlerId, topic, value: primValue }).catch(
-    console.error
-  );
+  let primValue: number[] = value.map((val: Number) => val.valueOf());
+  invoke("set_double_array_topic", {
+    handlerId,
+    topic,
+    value: primValue,
+  }).catch(console.error);
 }
 
 /**
@@ -470,8 +476,10 @@ export function SetBoolean(
   topic: String,
   value: Boolean
 ): void {
-  let primValue = value.valueOf();
-  invoke("set_boolean_topic", { handlerId, topic, value: primValue }).catch(console.error);
+  let primValue: boolean = value.valueOf();
+  invoke("set_boolean_topic", { handlerId, topic, value: primValue }).catch(
+    console.error
+  );
 }
 
 /**
@@ -487,10 +495,12 @@ export function SetBooleanArray(
   topic: String,
   value: Boolean[]
 ): void {
-  let primValue = value.map((val) => val.valueOf());
-  invoke("set_boolean_array_topic", { handlerId, topic, value: primValue }).catch(
-    console.error
-  );
+  let primValue: boolean[] = value.map((val: Boolean) => val.valueOf());
+  invoke("set_boolean_array_topic", {
+    handlerId,
+    topic,
+    value: primValue,
+  }).catch(console.error);
 }
 
 /**
@@ -525,8 +535,10 @@ export function SetString(
   topic: String,
   value: String
 ): void {
-  let primValue = value.valueOf();
-  invoke("set_string_topic", { handlerId, topic, value: primValue }).catch(console.error);
+  let primValue: string = value.valueOf();
+  invoke("set_string_topic", { handlerId, topic, value: primValue }).catch(
+    console.error
+  );
 }
 
 /**
@@ -542,48 +554,51 @@ export function SetStringArray(
   topic: String,
   value: String[]
 ): void {
-  let primValue = value.map((val) => val.valueOf());
-  invoke("set_string_array_topic", { handlerId, topic, value: primValue }).catch(
-    console.error
-  );
+  let primValue: string[] = value.map((val: String) => val.valueOf());
+  invoke("set_string_array_topic", {
+    handlerId,
+    topic,
+    value: primValue,
+  }).catch(console.error);
 }
 
 /**
  * Gets all the subbed topic entries for a given handlerId
  * @param handlerId the handlerId of the network table client to get the entries of
- * 
+ *
  * @returns an array of TableEntry objects
  */
 export async function GetEntries(
   handlerId: NetworkTableHandlerId
 ): Promise<TableEntry[]> {
-  return invoke("get_subbed_entries_values", { handlerId }).catch(console.error) as Promise<TableEntry[]>;
+  return invoke("get_subbed_entries_values", { handlerId }).catch(
+    console.error
+  ) as Promise<TableEntry[]>;
 }
 
 /**
  * Gets the value of a topic for a given handlerId and path
  * @param handlerId the handlerId of the network table client to get the value of
  * @param path the path of the topic to get the value of
- * 
+ *
  * @returns the TableEntry of the topic
  */
 export async function GetEntry(
   handlerId: NetworkTableHandlerId,
   path: String
 ): Promise<TableEntry> {
-  return invoke("get_subbed_entry_value", { handlerId, path }).catch(console.error) as Promise<TableEntry>;
+  return invoke("get_subbed_entry_value", { handlerId, path }).catch(
+    console.error
+  ) as Promise<TableEntry>;
 }
-
 
 /**
  * Gets the server timestamp of the server that the client associated with handlerId is connected to
  * @param handlerId the handlerId of the network table client to get the server timestamp of
- * 
+ *
  * @returns seconds since the unix epoch
  */
-export function GetServerTimestamp(
-  handlerId: NetworkTableHandlerId
-): number {
+export function GetServerTimestamp(handlerId: NetworkTableHandlerId): number {
   invoke("get_handler_timestamp", { handlerId }).then((timestamp) => {
     return timestamp;
   });

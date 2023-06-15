@@ -258,7 +258,7 @@ impl From<MushroomTypes> for f64 {
     fn from(m: MushroomTypes) -> Self {
         match m {
             MushroomTypes::Double(v) => v,
-            MushroomTypes::Float(v) => v as f64,
+            MushroomTypes::Float(v) => v,
             MushroomTypes::Int(v) => v as f64,
             _ => panic!("Cannot convert {:?} to f64", m),
         }
@@ -322,7 +322,7 @@ impl From<MushroomTypes> for Vec<f64> {
     fn from(m: MushroomTypes) -> Self {
         match m {
             MushroomTypes::DoubleArray(v) => v,
-            MushroomTypes::FloatArray(v) => v.iter().map(|v| *v as f64).collect(),
+            MushroomTypes::FloatArray(v) => v.iter().map(|v| *v).collect(),
             MushroomTypes::IntArray(v) => v.iter().map(|v| *v as f64).collect(),
             _ => panic!("Cannot convert {:?} to Vec<f64>", m),
         }

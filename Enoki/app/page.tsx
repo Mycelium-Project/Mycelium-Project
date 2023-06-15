@@ -3,17 +3,23 @@
 import Image from "next/image";
 import { JSX } from "react";
 import {
+  DoesNetworkTableHandlerExist,
   NetworkTableHandlerId,
   StartNetworkTableHandler,
+  TableEntry,
 } from "@/utilities/NT4Handler";
 import { invoke } from "@tauri-apps/api/tauri";
 import { window } from "@tauri-apps/api";
 import { TauriEvent } from "@tauri-apps/api/event";
+import NetworkTable from "@/app/components/network_tables";
 
-window.getCurrent().listen(TauriEvent.WINDOW_CLOSE_REQUESTED, (): boolean => {
-  invoke("close").then();
-  return true;
-}).then();
+window
+  .getCurrent()
+  .listen(TauriEvent.WINDOW_CLOSE_REQUESTED, (): boolean => {
+    invoke("close").then();
+    return true;
+  })
+  .then();
 
 export default function Home(): JSX.Element {
   return (
@@ -54,7 +60,9 @@ export default function Home(): JSX.Element {
         />
       </div>
 
-      <div className="mb-32 grid text-center lg:mb-0 lg:grid-cols-4 lg:text-left">
+      <NetworkTable />
+
+      <div className="mb-32 grid text-center lg:mb-0 lg:grid-cols-3 lg:text-left">
         <button
           className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
           onClick={StartNTHandler}
@@ -120,10 +128,26 @@ export default function Home(): JSX.Element {
 
         <button
           className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
+          onClick={DoesHandlerExist}
+        >
+          <h2 className={`mb-3 text-2xl font-semibold`}>
+            Is Connected?{" "}
+            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
+              -&gt;
+            </span>
+          </h2>
+          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
+            Click here to check if a handler exists for the network tables
+            server on localhost:5810
+          </p>
+        </button>
+
+        <button
+          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
           onClick={PollSubscriptions}
         >
           <h2 className={`mb-3 text-2xl font-semibold`}>
-            GetSubbed{" "}
+            Get Subbed{" "}
             <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
               -&gt;
             </span>
@@ -139,7 +163,7 @@ export default function Home(): JSX.Element {
 }
 
 //create a test table variable
-var testTable: NetworkTableHandlerId;
+let testTable: NetworkTableHandlerId;
 
 function StartNTHandler(): void {
   console.log("Starting NetworkTables");
@@ -150,9 +174,15 @@ function StopNT4Handler(): void {
   testTable.stopNetworkTableHandler();
 }
 
+function DoesHandlerExist(): void {
+  DoesNetworkTableHandlerExist(testTable).then((result: boolean) =>
+    console.log(result)
+  );
+}
+
 function SubscribeExample(): void {
   console.log("Subscribing to NetworkTables");
-  testTable.subscribe("", 0.05, true, true)
+  testTable.subscribe("", 0.05, true, true);
 }
 
 function PublishExample(): void {
@@ -162,6 +192,6 @@ function PublishExample(): void {
 
 async function PollSubscriptions(): Promise<void> {
   console.log("Polling Subscriptions");
-  let entries = await testTable.getEntries();
+  let entries: TableEntry[] = await testTable.getEntries();
   console.log(entries);
 }
