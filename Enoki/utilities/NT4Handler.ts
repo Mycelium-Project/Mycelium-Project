@@ -285,6 +285,7 @@ export async function DoesNetworkTableHandlerExist(
   handlerId: NetworkTableHandlerId
 ): Promise<boolean> {
   if (handlerId == undefined) {
+    console.log("handlerId is undefined");
     return false;
   }
   return invoke("does_network_table_handler_exist", {
@@ -301,6 +302,10 @@ export async function DoesNetworkTableHandlerExist(
 export function StopNetworkTableHandler(
   handlerId: NetworkTableHandlerId
 ): void {
+  if (handlerId == undefined) {
+    console.log("handlerId is undefined");
+    return;
+  }
   invoke("stop_network_table_handler", { handlerId }).catch(console.error);
 }
 
