@@ -11,7 +11,7 @@ import {
 import { invoke } from "@tauri-apps/api/tauri";
 import { window } from "@tauri-apps/api";
 import { TauriEvent } from "@tauri-apps/api/event";
-import NetworkTable from "@/app/components/network_tables";
+import NetworkTable from "@/app/components/network_table";
 
 window
   .getCurrent()
@@ -167,7 +167,7 @@ let testTable: NetworkTableHandlerId;
 
 function StartNTHandler(): void {
   console.log("Starting NetworkTables");
-  testTable = StartNetworkTableHandler([127, 0, 0, 1], 5810, "Enoki-test");
+  testTable = StartNetworkTableHandler([10, 64, 60, 53], 5810, "Enoki-test");
 }
 function StopNT4Handler(): void {
   console.log("Stopping NetworkTables");
