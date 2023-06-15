@@ -4,14 +4,19 @@
 use mushroom_types::{MushroomEntry, MushroomTypes, MushroomPath};
 use network_table_handler::{NetworkTableHandler, NetworkTableHandlerId, SubscriptionPackage};
 use network_tables::v4::SubscriptionOptions;
+use wpilog_rs::log::{DataLogDaemon, DatalogEntryResponse};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::net::Ipv4Addr;
 
+use crate::datalog_handler::create_datalog_daemon;
 use crate::mushroom_types::MushroomTable;
 
 pub mod mushroom_types;
 mod network_table_handler;
+mod datalog_handler;
+#[cfg(test)]
+mod test;
 
 thread_local! {
 
@@ -23,12 +28,15 @@ thread_local! {
             .unwrap()));
 
     static NETWORK_CLIENT_MAP: RefCell<HashMap<NetworkTableHandlerId, NetworkTableHandler>> = RefCell::new(HashMap::new());
+
+    static DATALOG: RefCell<DataLogDaemon> = RefCell::new(create_datalog_daemon());
 }
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
     tauri::Builder::default()
+        .plugin(datalog_handler::make_dl_plugin())
         .invoke_handler(tauri::generate_handler![
             start_network_table_handler,
             stop_network_table_handler,
@@ -47,6 +55,7 @@ async fn main() {
             get_subbed_entries_values,
             get_handler_timestamp,
             get_subbed_entry_value,
+            retrieve_dl_daemon_data,
             close
         ])
         .run(tauri::generate_context!())
@@ -314,5 +323,12 @@ fn get_handler_timestamp(handler_id: NetworkTableHandlerId) -> f64 {
             tracing::warn!("No network table handler found for {}", handler_id);
             0_f64
         }
+    })
+}
+
+#[tauri::command]
+fn retrieve_dl_daemon_data() -> Vec<DatalogEntryResponse> {
+    DATALOG.with(|datalog| {
+        datalog.borrow_mut().get_all_entries().clone()
     })
 }

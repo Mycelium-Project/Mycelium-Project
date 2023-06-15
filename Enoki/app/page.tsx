@@ -167,7 +167,7 @@ let testTable: NetworkTableHandlerId;
 
 function StartNTHandler(): void {
   console.log("Starting NetworkTables");
-  testTable = StartNetworkTableHandler([127, 0, 0, 1], 5810, "Enoki-test");
+  testTable = StartNetworkTableHandler([74, 65, 89, 147], 5800, "Enoki-test");
 }
 function StopNT4Handler(): void {
   console.log("Stopping NetworkTables");

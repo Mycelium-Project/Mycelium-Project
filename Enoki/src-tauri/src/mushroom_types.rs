@@ -1,6 +1,7 @@
 use std::{collections::HashMap, hash::Hash, time::Instant, fmt::Display};
 
 use serde::{Serialize, ser::{SerializeSeq, SerializeMap}, Deserialize};
+use wpilog_rs::log::DataLogValue;
 
 /// Microseconds
 type MushroomTimeStamp = u128;
@@ -457,31 +458,44 @@ impl From<MushroomTypes> for network_tables::v4::message_type::Type {
     }
 }
 
-//shouldn't be needed and doesn't persist value
-// impl From<network_tables::v4::message_type::Type> for MushroomTypes {
-//     fn from(m: network_tables::v4::message_type::Type) -> Self {
-//         match m {
-//             network_tables::v4::message_type::Type::Boolean => MushroomTypes::Boolean(false),
-//             network_tables::v4::message_type::Type::Double => MushroomTypes::Double(0.0),
-//             network_tables::v4::message_type::Type::Float => MushroomTypes::Float(0.0),
-//             network_tables::v4::message_type::Type::Int => MushroomTypes::Int(0),
-//             network_tables::v4::message_type::Type::String => MushroomTypes::String("".to_string()),
-//             network_tables::v4::message_type::Type::BooleanArray => {
-//                 MushroomTypes::BooleanArray(vec![])
-//             }
-//             network_tables::v4::message_type::Type::DoubleArray => {
-//                 MushroomTypes::DoubleArray(vec![])
-//             }
-//             network_tables::v4::message_type::Type::FloatArray => MushroomTypes::FloatArray(vec![]),
-//             network_tables::v4::message_type::Type::IntArray => MushroomTypes::IntArray(vec![]),
-//             network_tables::v4::message_type::Type::StringArray => {
-//                 MushroomTypes::StringArray(vec![])
-//             }
-//             network_tables::v4::message_type::Type::ProtoBuf => MushroomTypes::Protobuf(vec![]),
-//             _ => MushroomTypes::ByteArray(vec![]),
-//         }
-//     }
-// }
+impl From<DataLogValue> for MushroomTypes {
+    fn from(m: DataLogValue) -> Self {
+        match m {
+            DataLogValue::Boolean(v) => MushroomTypes::Boolean(v),
+            DataLogValue::Double(v) => MushroomTypes::Double(v),
+            DataLogValue::Float(v) => MushroomTypes::Float(v as f64),
+            DataLogValue::Integer(v) => MushroomTypes::Int(v),
+            DataLogValue::String(v) => MushroomTypes::String(v),
+            DataLogValue::BooleanArray(v) => MushroomTypes::BooleanArray(v),
+            DataLogValue::DoubleArray(v) => MushroomTypes::DoubleArray(v),
+            DataLogValue::FloatArray(v) => MushroomTypes::FloatArray(
+                v.into_iter().map(|v| v as f64).collect()),
+            DataLogValue::IntegerArray(v) => MushroomTypes::IntArray(v),
+            DataLogValue::StringArray(v) => MushroomTypes::StringArray(v),
+            DataLogValue::Raw(v) => MushroomTypes::ByteArray(v),
+        }
+    }
+}
+
+impl From<MushroomTypes> for DataLogValue {
+    fn from(m: MushroomTypes) -> Self {
+        match m {
+            MushroomTypes::Boolean(v) => DataLogValue::Boolean(v),
+            MushroomTypes::Double(v) => DataLogValue::Double(v),
+            MushroomTypes::Float(v) => DataLogValue::Float(v as f32),
+            MushroomTypes::Int(v) => DataLogValue::Integer(v),
+            MushroomTypes::String(v) => DataLogValue::String(v),
+            MushroomTypes::BooleanArray(v) => DataLogValue::BooleanArray(v),
+            MushroomTypes::DoubleArray(v) => DataLogValue::DoubleArray(v),
+            MushroomTypes::FloatArray(v) => DataLogValue::FloatArray(
+                v.into_iter().map(|v| v as f32).collect()),
+            MushroomTypes::IntArray(v) => DataLogValue::IntegerArray(v),
+            MushroomTypes::StringArray(v) => DataLogValue::StringArray(v),
+            MushroomTypes::ByteArray(v) => DataLogValue::Raw(v),
+            _ => panic!("Cannot convert {:?} to DataLogValue", m),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct MushroomPath {

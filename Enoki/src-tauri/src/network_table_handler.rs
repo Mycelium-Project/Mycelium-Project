@@ -24,6 +24,10 @@ impl NetworkTableHandlerId {
     pub fn new(ip: Ipv4Addr, port: u16, identity: String) -> Self {
         Self { ip: ip.octets(), port, identity }
     }
+
+    pub fn repr(&self) -> String {
+        format!("{}", self)
+    }
 }
 impl Display for NetworkTableHandlerId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -151,7 +155,7 @@ fn inner_nt4(
             let client: Client = Client::try_new_w_config(
                 SocketAddrV4::new(address, port),
                 Config {
-                    connect_timeout: 5000,
+                    connect_timeout: 30000,
                     disconnect_retry_interval: 10000,
                     should_reconnect: Box::new(default_should_reconnect),
                     on_announce: Box::new(|_| {
@@ -178,7 +182,10 @@ fn inner_nt4(
                 identity,
             )
             .await
-            .unwrap();
+            .unwrap_or_else(|err| {
+                tracing::error!("Failed to connect to {}:{} because {}", address, port, err);
+                panic!();
+            });
 
             let mut table = MushroomTable::new(client.real_server_time());
 
