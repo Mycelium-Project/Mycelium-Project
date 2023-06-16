@@ -1887,7 +1887,7 @@ dependencies = [
 [[package]]
 name = "network-tables"
 version = "0.1.4"
-source = "git+https://github.com/oh-yes-0-fps/network-tables-rs#7532e05b65c09a0d37dcec78a1a2742b3f6cf7cc"
+source = "git+https://github.com/oh-yes-0-fps/network-tables-rs#e96c5508a308fa903a008b6e46d0c45cebacc3df"
 dependencies = [
  "futures-util",
  "parking_lot",
@@ -2878,9 +2878,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.96"
+version = "1.0.97"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "057d394a50403bcac12672b2b18fb387ab6d289d957dab67dd201875391e52f1"
+checksum = "bdf3bf93142acad5821c99197022e170842cdbc1c30482b98750c688c640842a"
 dependencies = [
  "itoa 1.0.6",
  "ryu",
