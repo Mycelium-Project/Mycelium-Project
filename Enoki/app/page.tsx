@@ -13,14 +13,6 @@ import { window } from "@tauri-apps/api";
 import { TauriEvent } from "@tauri-apps/api/event";
 import NetworkTable from "@/app/components/network_table";
 
-window
-  .getCurrent()
-  .listen(TauriEvent.WINDOW_CLOSE_REQUESTED, (): boolean => {
-    invoke("close").then();
-    return true;
-  })
-  .then();
-
 export default function Home(): JSX.Element {
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
