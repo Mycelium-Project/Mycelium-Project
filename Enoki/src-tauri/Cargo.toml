@@ -18,12 +18,21 @@ tauri-build = { version = "1.4.0", features = [] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "1.4.0", features = ["api-all"] }
-network-tables = { git = "https://github.com/oh-yes-0-fps/network-tables-rs", version = "0.1.4", features = [ "client-v4", "tracing" ] }
 tokio = { version = "1.28.2", features = ["rt", "sync", "net", "time", "macros", "rt-multi-thread", "parking_lot"] }
 tracing-subscriber = "0.3.17"
 tracing = "0.1.27"
 rmpv = "1.0.0"
 single_value_channel = "1.2.2"
+chrono = "0.4.26"
+thiserror = "1.0.40"
+tracing-appender = "0.2.2"
+
+# network-tables = { git = "https://github.com/oh-yes-0-fps/network-tables-rs", version = "0.1.4", features = [ "client-v4", "tracing" ] }
+# wpilog = { git = "https://github.com/oh-yes-0-fps/wpilog-rs", version = "^0.1", features = [ "tracing" ] }
+
+
+network-tables = { path = "../network-tables-rs", version = "0.1.4", features = [ "client-v4", "tracing" ] }
+wpilog = { path = "../wpilog-rs/", version = "^0.1", features = [ "tracing" ] }
 
 
 [features]
@@ -31,3 +40,6 @@ single_value_channel = "1.2.2"
 # If you use cargo directly instead of tauri's cli you can use this feature flag to switch between tauri's `dev` and `build` modes.
 # DO NOT REMOVE!!
 custom-protocol = ["tauri/custom-protocol"]
+
+[package.metadata.release]
+pre-release-hook = ["./update_subrepos.sh"]
