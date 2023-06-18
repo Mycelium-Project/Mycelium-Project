@@ -99,7 +99,7 @@ let testTable: NetworkTableClientId;
 async function StartNTClient(): Promise<void> {
   console.log("Starting NetworkTables");
   TraceWarn("TEST");
-  testTable = await StartNetworkTableClient([74, 65, 89, 147], 5800, "Enoki-test");
+  testTable = await StartNetworkTableClient([127, 0, 0, 1], 5810, "Enoki-test");
 }
 
 function StopNTClient(): void {
@@ -109,7 +109,6 @@ function StopNTClient(): void {
   } else {
     TraceWarn("No client to stop");
   }
-
 }
 
 function DoesClientExist(): void {
