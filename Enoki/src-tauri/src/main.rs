@@ -1,318 +1,124 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use mushroom_types::{MushroomEntry, MushroomTypes, MushroomPath};
-use network_table_handler::{NetworkTableHandler, NetworkTableHandlerId, SubscriptionPackage};
-use network_tables::v4::SubscriptionOptions;
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::net::Ipv4Addr;
+use datalog::handler::log_datalog_value;
+use error::TraceWriter;
+use mushroom_types::MushroomValue;
+use networktable::handler::get_connect_client_names;
 
-use crate::mushroom_types::MushroomTable;
 
+use tauri::plugin::TauriPlugin;
+use tauri::{RunEvent, Runtime};
+use tracing::metadata::LevelFilter;
+
+use crate::datalog::handler::start_datalog_entry;
+use crate::datalog::DATALOG;
+// use crate::datalog::handler::{create_datalog_daemon, log_datalog_value, start_datalog_entry};
+use crate::error::log_result_consume;
+use crate::frontend_helpers::logging::tracing_frontend;
+use crate::networktable::NETWORK_CLIENT_MAP;
+
+mod error;
 pub mod mushroom_types;
-mod network_table_handler;
 
-thread_local! {
+#[cfg(test)]
+mod test;
 
-    static THREAD_POOL: RefCell<Option<tokio::runtime::Runtime>> = RefCell::new(
-    Some(tokio::runtime::Builder::new_multi_thread()
-            .worker_threads(4)
-            .enable_all()
-            .build()
-            .unwrap()));
+pub mod datalog;
+pub mod frontend_helpers;
+pub mod networktable;
 
-    static NETWORK_CLIENT_MAP: RefCell<HashMap<NetworkTableHandlerId, NetworkTableHandler>> = RefCell::new(HashMap::new());
-}
+
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt::init();
+    // guard lock needs to live till end of program
+    let _guard_lock;
+    if cfg!(debug_assertions) {
+        let (non_blocking_std_io, _guard_std_io) =
+            tracing_appender::non_blocking(std::io::stdout());
+        tracing_subscriber::fmt()
+            .with_file(true)
+            .with_thread_names(true)
+            .pretty()
+            .with_line_number(true)
+            .without_time()
+            .with_level(true)
+            .with_writer(non_blocking_std_io)
+            .init();
+        _guard_lock = _guard_std_io;
+    } else {
+        let (non_blocking_file, _guard_file) = tracing_appender::non_blocking(TraceWriter::new());
+        tracing_subscriber::fmt()
+            .with_file(true)
+            .with_thread_names(true)
+            .with_line_number(true)
+            .with_level(true)
+            .with_max_level(LevelFilter::WARN)
+            .with_writer(non_blocking_file)
+            .init();
+        _guard_lock = _guard_file;
+    }
+
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![
-            start_network_table_handler,
-            stop_network_table_handler,
-            does_network_table_handler_exist,
-            subscribe_to_topic,
-            set_boolean_topic,
-            set_float_topic,
-            set_double_topic,
-            set_string_topic,
-            set_int_topic,
-            set_boolean_array_topic,
-            set_float_array_topic,
-            set_double_array_topic,
-            set_string_array_topic,
-            set_int_array_topic,
-            get_subbed_entries_values,
-            get_handler_timestamp,
-            get_subbed_entry_value,
-            close
-        ])
+        .plugin(backend_plugin())
+        .plugin(frontend_helpers::appvars_plugin())
+        .plugin(networktable::networktable_plugin())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
 
-#[tauri::command]
-fn close() {
-    tracing::warn!("Closing");
-    THREAD_POOL.with(|pool| (pool.replace(None)).unwrap().shutdown_background());
-    NETWORK_CLIENT_MAP.with(|map| map.borrow_mut().clear());
-    std::process::exit(0);
+pub fn backend_plugin<R: Runtime>() -> TauriPlugin<R> {
+    tauri::plugin::Builder::new("native")
+        .on_event(move |_app_handle, event| match event {
+            RunEvent::Ready => {
+                // tauri::async_runtime::block_on(init());
+                tauri::async_runtime::spawn(init());
+            }
+            RunEvent::MainEventsCleared => {
+                // tauri::async_runtime::block_on(per_frame());
+                tauri::async_runtime::spawn(per_frame());
+            }
+            RunEvent::ExitRequested { .. } => {
+                // tauri::async_runtime::block_on(close());
+                tauri::async_runtime::spawn(close());
+            }
+            _ => {}
+        })
+        .invoke_handler(
+            tauri::generate_handler![tracing_frontend])
+        .build()
 }
 
-/**
-* Starts the network table handler
-*
-* address The IP address of the network table server as an array of 4 bytes
-* in typescript pass in an array of 4 numbers
-*
-* port The port of the network table server as a 16-bit unsigned integer
-* in typescript pass in a number
-*/
-#[tauri::command]
-fn start_network_table_handler(
-    address: [u8; 4],
-    port: u16,
-    identity: String,
-) -> NetworkTableHandlerId {
-    let ip = Ipv4Addr::from(address);
-    let id = NetworkTableHandlerId::new(ip, port, identity.clone());
-
-    if let Some(handler) = NETWORK_CLIENT_MAP.with(|map| map.borrow_mut().remove(&id)) {
-        tracing::info!("Stopping network table handler for {}", id);
-        handler.stop();
-    }
-
-    tracing::info!("Starting network table handler for {}", id);
-    let handler = network_table_handler::nt4(ip, port, identity).unwrap();
-
-    NETWORK_CLIENT_MAP.with(|map| {
-        map.borrow_mut().insert(id.clone(), handler);
-    });
-
-    return id;
+///called when the ui first starts up
+async fn init() {
+    tracing::info!("Init");
+    log_result_consume(
+        start_datalog_entry(
+            "/ClientsConnected",
+            "string[]",
+            Some("Clients running from the app"),
+        )
+        .await,
+    );
 }
 
-#[tauri::command]
-fn does_network_table_handler_exist(handler_id: NetworkTableHandlerId) -> bool {
-    NETWORK_CLIENT_MAP.with(|map| map.borrow().contains_key(&handler_id))
+///anything put in this will run once per frame of the ui, keep it light
+/// WARNING: only called while window is focused
+/// if you need something to run in the background *at all times* use a thread
+async fn per_frame() {
+    log_result_consume(
+        log_datalog_value(
+            "/ClientsConnected",
+            MushroomValue::StringArray(get_connect_client_names().await),
+        )
+        .await,
+    );
 }
 
-#[tauri::command]
-fn stop_network_table_handler(handler_id: NetworkTableHandlerId) {
-    NETWORK_CLIENT_MAP.with(|map| {
-        if let Some(handler) = map.borrow_mut().remove(&handler_id) {
-            tracing::info!("Stopping network table handler for {}", handler_id);
-            handler.stop();
-        } else {
-            tracing::warn!("No network table handler found for {}", handler_id);
-        }
-    });
-}
-
-#[tauri::command]
-fn subscribe_to_topic(
-    handler_id: NetworkTableHandlerId,
-    topic: String,
-    periodic: Option<f64>,
-    all: Option<bool>,
-    prefix: Option<bool>,
-) {
-    NETWORK_CLIENT_MAP.with(|map| {
-        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
-            let data = SubscriptionPackage::new(
-                topic.clone(),
-                SubscriptionOptions {
-                    all,
-                    prefix,
-                    periodic,
-                    ..Default::default()
-                },
-            );
-            handler.subscribe(vec![data]);
-            tracing::info!("Subscribed to topic {}", topic);
-        } else {
-            tracing::warn!("No network table handler found for {}", handler_id);
-        }
-    });
-}
-
-#[tauri::command]
-fn set_boolean_topic(handler_id: NetworkTableHandlerId, topic: String, value: bool) {
-    NETWORK_CLIENT_MAP.with(|map| {
-        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
-            let entry = MushroomEntry::new(
-                MushroomTypes::Boolean(value), topic.clone().into(), None);
-            handler.publish(MushroomTable::new_from_entries(0, vec![entry]));
-            tracing::info!("Set boolean topic {} to {}", topic, value);
-        } else {
-            tracing::warn!("No network table handler found for {}", handler_id);
-        }
-    });
-}
-
-#[tauri::command]
-fn set_float_topic(handler_id: NetworkTableHandlerId, topic: String, value: f64) {
-    NETWORK_CLIENT_MAP.with(|map| {
-        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
-            let entry = MushroomEntry::new(
-                MushroomTypes::Float(value), topic.clone().into(), None);
-            handler.publish(MushroomTable::new_from_entries(0, vec![entry]));
-            tracing::info!("Set float topic {} to {}", topic, value);
-        } else {
-            tracing::warn!("No network table handler found for {}", handler_id);
-        }
-    });
-}
-
-#[tauri::command]
-fn set_double_topic(handler_id: NetworkTableHandlerId, topic: String, value: f64) {
-    NETWORK_CLIENT_MAP.with(|map| {
-        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
-            let entry = MushroomEntry::new(
-                MushroomTypes::Double(value), topic.clone().into(), None);
-            handler.publish(MushroomTable::new_from_entries(0, vec![entry]));
-            tracing::info!("Set double topic {} to {}", topic, value);
-        } else {
-            tracing::warn!("No network table handler found for {}", handler_id);
-        }
-    });
-}
-
-#[tauri::command]
-fn set_string_topic(handler_id: NetworkTableHandlerId, topic: String, value: String) {
-    NETWORK_CLIENT_MAP.with(|map| {
-        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
-            let entry = MushroomEntry::new(
-                MushroomTypes::String(value.clone()), topic.clone().into(), None);
-            handler.publish(MushroomTable::new_from_entries(0, vec![entry]));
-            tracing::info!("Set string topic {} to {}", topic, value);
-        } else {
-            tracing::warn!("No network table handler found for {}", handler_id);
-        }
-    });
-}
-
-#[tauri::command]
-fn set_int_topic(handler_id: NetworkTableHandlerId, topic: String, value: i64) {
-    NETWORK_CLIENT_MAP.with(|map| {
-        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
-            let entry = MushroomEntry::new(
-                MushroomTypes::Int(value), topic.clone().into(), None);
-            handler.publish(MushroomTable::new_from_entries(0, vec![entry]));
-            tracing::info!("Set int topic {} to {} for {}", topic, value, handler_id);
-        } else {
-            tracing::warn!("No network table handler found for {}", handler_id);
-        }
-    });
-}
-
-#[tauri::command]
-fn set_boolean_array_topic(handler_id: NetworkTableHandlerId, topic: String, value: Vec<bool>) {
-    NETWORK_CLIENT_MAP.with(|map| {
-        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
-            let entry = MushroomEntry::new(
-                MushroomTypes::BooleanArray(value.clone()), topic.clone().into(), None);
-            handler.publish(MushroomTable::new_from_entries(0, vec![entry]));
-            tracing::info!("Set boolean array topic {} to {:?}", topic, value);
-        } else {
-            tracing::warn!("No network table handler found for {}", handler_id);
-        }
-    });
-}
-
-#[tauri::command]
-fn set_float_array_topic(handler_id: NetworkTableHandlerId, topic: String, value: Vec<f64>) {
-    NETWORK_CLIENT_MAP.with(|map| {
-        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
-            let entry = MushroomEntry::new(
-                MushroomTypes::FloatArray(value.clone()), topic.clone().into(), None);
-            handler.publish(MushroomTable::new_from_entries(0, vec![entry]));
-            tracing::info!("Set float array topic {} to {:?}", topic, value);
-        } else {
-            tracing::warn!("No network table handler found for {}", handler_id);
-        }
-    });
-}
-
-#[tauri::command]
-fn set_double_array_topic(handler_id: NetworkTableHandlerId, topic: String, value: Vec<f64>) {
-    NETWORK_CLIENT_MAP.with(|map| {
-        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
-            let entry = MushroomEntry::new(
-                MushroomTypes::DoubleArray(value.clone()), topic.clone().into(), None);
-            handler.publish(MushroomTable::new_from_entries(0, vec![entry]));
-            tracing::info!("Set double array topic {} to {:?}", topic, value);
-        } else {
-            tracing::warn!("No network table handler found for {}", handler_id);
-        }
-    });
-}
-
-#[tauri::command]
-fn set_string_array_topic(handler_id: NetworkTableHandlerId, topic: String, value: Vec<String>) {
-    NETWORK_CLIENT_MAP.with(|map| {
-        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
-            let entry = MushroomEntry::new(
-                MushroomTypes::StringArray(value.clone()), topic.clone().into(), None);
-            handler.publish(MushroomTable::new_from_entries(0, vec![entry]));
-            tracing::info!("Set string array topic {} to {:?}", topic, value);
-        } else {
-            tracing::warn!("No network table handler found for {}", handler_id);
-        }
-    });
-}
-
-#[tauri::command]
-fn set_int_array_topic(handler_id: NetworkTableHandlerId, topic: String, value: Vec<i64>) {
-    NETWORK_CLIENT_MAP.with(|map| {
-        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
-            let entry =
-                MushroomEntry::new(MushroomTypes::IntArray(value.clone()), topic.clone().into(), None);
-            handler.publish(MushroomTable::new_from_entries(0, vec![entry]));
-            tracing::info!("Set int array topic {} to {:?}", topic, value);
-        } else {
-            tracing::warn!("No network table handler found for {}", handler_id);
-        }
-    });
-}
-
-#[tauri::command]
-fn get_subbed_entries_values(handler_id: NetworkTableHandlerId) -> MushroomTable {
-    NETWORK_CLIENT_MAP.with(|map| {
-        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
-            tracing::info!("Getting subbed entries values for {}", handler_id);
-            handler.poll()
-        } else {
-            tracing::warn!("No network table handler found for {}", handler_id);
-            MushroomTable::new(0)
-        }
-    })
-}
-
-#[tauri::command]
-fn get_subbed_entry_value(handler_id: NetworkTableHandlerId, path: MushroomPath) -> Option<MushroomEntry> {
-    NETWORK_CLIENT_MAP.with(|map| {
-        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
-            tracing::info!("Getting subbed entry value for {}", handler_id);
-            handler.poll().get_entry(&path)
-        } else {
-            tracing::warn!("No network table handler found for {}", handler_id);
-            None
-        }
-    })
-}
-
-#[tauri::command]
-fn get_handler_timestamp(handler_id: NetworkTableHandlerId) -> f64 {
-    NETWORK_CLIENT_MAP.with(|map| {
-        if let Some(handler) = map.borrow_mut().get_mut(&handler_id) {
-            tracing::info!("Getting handler timestamp for {}", handler_id);
-            handler.poll().get_timestamp() as f64 / 1000000_f64
-        } else {
-            tracing::warn!("No network table handler found for {}", handler_id);
-            0_f64
-        }
-    })
+///called when the app is shutting down
+async fn close() {
+    tracing::info!("Closing");
+    DATALOG.lock().await.kill();
+    NETWORK_CLIENT_MAP.lock().await.clear();
 }

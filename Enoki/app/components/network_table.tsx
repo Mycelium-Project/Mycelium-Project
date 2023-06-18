@@ -1,6 +1,6 @@
 import { Card, Typography } from "@material-tailwind/react";
 import { JSX } from "react";
-import { DisplayTableEntry } from "@/utilities/NT4Handler";
+import { DisplayTableEntry } from "@/utilities/NetworkTableV4";
 
 const TABLE_HEAD: string[] = ["Key", "Type", "Value", "Age (s)", ""];
 

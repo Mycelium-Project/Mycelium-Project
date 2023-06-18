@@ -3,15 +3,16 @@
 import Image from "next/image";
 import { JSX } from "react";
 import {
-  DoesNetworkTableHandlerExist,
-  NetworkTableHandlerId,
-  StartNetworkTableHandler,
+  DoesNetworkTableClientExist,
+  NetworkTableClientId,
+  StartNetworkTableClient,
   TableEntry,
-} from "@/utilities/NT4Handler";
+} from "@/utilities/NetworkTableV4";
 import { invoke } from "@tauri-apps/api/tauri";
 import { window } from "@tauri-apps/api";
 import { TauriEvent } from "@tauri-apps/api/event";
 import NetworkTable from "@/app/components/network_table";
+import { TraceWarn } from "@/utilities/Tracing";
 import { LargeButton } from "@/app/components/buttons";
 
 window
@@ -49,13 +50,13 @@ export default function Home(): JSX.Element {
         <LargeButton
           title="Connect"
           subtext="Click here to connect to the network tables server on localhost:5810"
-          action={StartNTHandler}
+          action={StartNTClient}
         />
 
         <LargeButton
           title="Disconnect"
           subtext="Click here to disconnect from the network tables server on localhost:5810"
-          action={StopNT4Handler}
+          action={StopNTClient}
         />
 
         <LargeButton
@@ -73,7 +74,7 @@ export default function Home(): JSX.Element {
         />
 
         <LargeButton
-          action={DoesHandlerExist}
+          action={DoesClientExist}
           title={"Is Connected?"}
           subtext={
             "Click here to check if a handler exists for the network tables server on localhost:5810"
@@ -93,19 +94,26 @@ export default function Home(): JSX.Element {
 }
 
 //create a test table variable
-let testTable: NetworkTableHandlerId;
+let testTable: NetworkTableClientId;
 
-function StartNTHandler(): void {
+async function StartNTClient(): Promise<void> {
   console.log("Starting NetworkTables");
-  testTable = StartNetworkTableHandler([10, 64, 60, 53], 5810, "Enoki-test");
-}
-function StopNT4Handler(): void {
-  console.log("Stopping NetworkTables");
-  testTable.stopNetworkTableHandler();
+  TraceWarn("TEST");
+  testTable = await StartNetworkTableClient([74, 65, 89, 147], 5800, "Enoki-test");
 }
 
-function DoesHandlerExist(): void {
-  DoesNetworkTableHandlerExist(testTable).then((result: boolean) =>
+function StopNTClient(): void {
+  console.log("Stopping NetworkTables");
+  if (testTable) {
+    testTable.stopNetworkTableClient();
+  } else {
+    TraceWarn("No client to stop");
+  }
+
+}
+
+function DoesClientExist(): void {
+  DoesNetworkTableClientExist(testTable).then((result: boolean) =>
     console.log(result)
   );
 }
