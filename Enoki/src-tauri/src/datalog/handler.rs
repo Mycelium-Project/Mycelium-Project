@@ -3,7 +3,9 @@ use std::path::PathBuf;
 use tauri::api::path::document_dir;
 use wpilog::log::{CreateDataLogConfig, DataLog, DataLogDaemon, OpenDataLogConfig};
 
-use crate::{check_if_main_thread, error::EnokiError, mushroom_types::MushroomValue, DATALOG};
+use crate::{error::EnokiError, mushroom_types::MushroomValue};
+
+use super::DATALOG;
 
 static RELATIVE_DIRECTORY: &str = "Enoki/Datalogs";
 
@@ -41,56 +43,40 @@ pub fn create_datalog_daemon() -> DataLogDaemon {
         .unwrap()
         .to_string();
 
-    tracing::info!(
-        "Creating datalog at {}",
-        PathBuf::from(abs_path.clone()).display()
-    );
-
     let config = CreateDataLogConfig {
         file_path: abs_path.into(),
         metadata: "".into(),
     };
 
     //if can't create datalog crash
-    let datalog = DataLog::create(config.clone()).unwrap();
+    let datalog = DataLog::create(config.clone()).expect("Failed to create datalog");
     datalog.as_daemon()
 }
 
-pub fn start_datalog_entry(
+pub async fn start_datalog_entry(
     name: &str,
     entry_type: &str,
     metadata: Option<&str>,
 ) -> Result<(), EnokiError> {
-    check_if_main_thread()?;
-    DATALOG.with(|datalog| {
-        datalog.borrow().borrow_sender().start_entry(
-            String::from(name),
-            String::from(entry_type),
-            metadata.map(String::from),
-        )
-    })?;
+    DATALOG.lock().await.borrow_sender().start_entry(
+        String::from(name),
+        String::from(entry_type),
+        metadata.map(String::from),
+    )?;
     Ok(())
 }
 
-pub fn end_datalog_entry(name: &str) -> Result<(), EnokiError> {
-    check_if_main_thread()?;
-    DATALOG.with(|datalog| {
-        datalog
-            .borrow()
-            .borrow_sender()
-            .finish_entry(String::from(name))
-    })?;
+pub async fn end_datalog_entry(name: &str) -> Result<(), EnokiError> {
+    DATALOG.lock().await.borrow_sender().finish_entry(String::from(name))?;
     Ok(())
 }
 
-pub fn log_datalog_value(name: &str, value: MushroomValue) -> Result<(), EnokiError> {
-    check_if_main_thread()?;
-    DATALOG.with(|datalog| {
-        datalog
-            .borrow()
-            .borrow_sender()
-            .append_to_entry(String::from(name), value.into())
-    })?;
+pub async fn log_datalog_value(name: &str, value: MushroomValue) -> Result<(), EnokiError> {
+    DATALOG
+        .lock()
+        .await
+        .borrow_sender()
+        .append_to_entry(String::from(name), value.into())?;
     Ok(())
 }
 

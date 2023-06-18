@@ -3,15 +3,16 @@
 import Image from "next/image";
 import { JSX } from "react";
 import {
-  DoesNetworkTableHandlerExist,
-  NetworkTableHandlerId,
-  StartNetworkTableHandler,
+  DoesNetworkTableClientExist,
+  NetworkTableClientId,
+  StartNetworkTableClient,
   TableEntry,
-} from "@/utilities/NT4Handler";
+} from "@/utilities/NetworkTableV4";
 import { invoke } from "@tauri-apps/api/tauri";
 import { window } from "@tauri-apps/api";
 import { TauriEvent } from "@tauri-apps/api/event";
 import NetworkTable from "@/app/components/network_table";
+import { TraceWarn } from "@/utilities/Tracing";
 
 export default function Home(): JSX.Element {
   return (
@@ -57,7 +58,7 @@ export default function Home(): JSX.Element {
       <div className="mb-32 grid text-center lg:mb-0 lg:grid-cols-3 lg:text-left">
         <button
           className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          onClick={StartNTHandler}
+          onClick={StartNTClient}
         >
           <h2 className={`mb-3 text-2xl font-semibold`}>
             Connect{" "}
@@ -72,7 +73,7 @@ export default function Home(): JSX.Element {
 
         <button
           className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          onClick={StopNT4Handler}
+          onClick={StopNT4Client}
         >
           <h2 className={`mb-3 text-2xl font-semibold`}>
             Disconnect{" "}
@@ -120,7 +121,7 @@ export default function Home(): JSX.Element {
 
         <button
           className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          onClick={DoesHandlerExist}
+          onClick={DoesClientExist}
         >
           <h2 className={`mb-3 text-2xl font-semibold`}>
             Is Connected?{" "}
@@ -129,7 +130,7 @@ export default function Home(): JSX.Element {
             </span>
           </h2>
           <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Click here to check if a handler exists for the network tables
+            Click here to check if a client exists for the network tables
             server on localhost:5810
           </p>
         </button>
@@ -155,19 +156,26 @@ export default function Home(): JSX.Element {
 }
 
 //create a test table variable
-let testTable: NetworkTableHandlerId;
+let testTable: NetworkTableClientId;
 
-function StartNTHandler(): void {
+async function StartNTClient(): Promise<void> {
   console.log("Starting NetworkTables");
-  testTable = StartNetworkTableHandler([74, 65, 89, 147], 5800, "Enoki-test");
-}
-function StopNT4Handler(): void {
-  console.log("Stopping NetworkTables");
-  testTable.stopNetworkTableHandler();
+  TraceWarn("TEST");
+  testTable = await StartNetworkTableClient([74, 65, 89, 147], 5800, "Enoki-test");
 }
 
-function DoesHandlerExist(): void {
-  DoesNetworkTableHandlerExist(testTable).then((result: boolean) =>
+function StopNT4Client(): void {
+  console.log("Stopping NetworkTables");
+  if (testTable) {
+    testTable.stopNetworkTableClient();
+  } else {
+    TraceWarn("No client to stop");
+  }
+
+}
+
+function DoesClientExist(): void {
+  DoesNetworkTableClientExist(testTable).then((result: boolean) =>
     console.log(result)
   );
 }

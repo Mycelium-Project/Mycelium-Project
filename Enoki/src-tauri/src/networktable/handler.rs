@@ -1,3 +1,4 @@
+use network_tables::v4::client::clear_identity;
 use network_tables::v4::client_config::default_should_reconnect;
 use network_tables::v4::subscription::SubscriptionOptions;
 use network_tables::v4::{Client, Config, PublishedTopic, Subscription, Type};
@@ -14,15 +15,13 @@ use tokio::task::JoinHandle as TokioJoinHandle;
 
 use crate::error::EnokiError;
 use crate::mushroom_types::{MushroomEntry, MushroomTable};
-use crate::{check_if_main_thread, NETWORK_CLIENT_MAP, THREAD_POOL};
+use crate::NETWORK_CLIENT_MAP;
 
-pub fn get_connect_client_names() -> Vec<String> {
+pub async fn get_connect_client_names() -> Vec<String> {
     let mut names = Vec::new();
-    NETWORK_CLIENT_MAP.with(|map| {
-        for (name, _) in map.borrow().iter() {
-            names.push(name.repr());
-        }
-    });
+    for (name, _) in NETWORK_CLIENT_MAP.lock().await.iter() {
+        names.push(name.repr());
+    }
     names
 }
 
@@ -83,6 +82,7 @@ impl NetworkTableClient {
     }
 
     pub fn stop(&self) {
+        clear_identity(self.id.identity.clone());
         self.thread.abort();
     }
 
@@ -136,7 +136,6 @@ pub fn start_nt4_client(
     port: u16,
     identity: String,
 ) -> Result<NetworkTableClient, EnokiError> {
-    check_if_main_thread()?;
 
     let (snd_pub, rec_pub) = channel::<MushroomTable>(255);
     let (rec_sub, snd_sub) = single_channel(MushroomTable::new(0));
@@ -167,124 +166,123 @@ fn nt4(
     mut input: Receiver<MushroomTable>,
     output: SingleUpdater<MushroomTable>,
 ) -> TokioJoinHandle<()> {
-    //error handling is in the thread
-    THREAD_POOL.with(|thread_pool| {
-        thread_pool.borrow().as_ref().unwrap().spawn(async move {
-            let mut subs: HashMap<String, Subscription> = HashMap::new();
-            let mut pubs: HashMap<String, PublishedTopic> = HashMap::new();
+    tokio::task::Builder::new()
+        .name(format!("NT4-{}", identity).as_str())
+        .spawn(async move {
+        let mut subs: HashMap<String, Subscription> = HashMap::new();
+        let mut pubs: HashMap<String, PublishedTopic> = HashMap::new();
 
-            let client = Client::try_new_w_config(
-                SocketAddrV4::new(address, port),
-                Config {
-                    connect_timeout: 30000,
-                    disconnect_retry_interval: 10000,
-                    should_reconnect: Box::new(default_should_reconnect),
-                    on_announce: Box::new(|_| {
-                        Box::pin(async {
-                            tracing::info!("Announced");
-                        })
-                    }),
-                    on_un_announce: Box::new(|_| {
-                        Box::pin(async {
-                            tracing::info!("Un-announced");
-                        })
-                    }),
-                    on_disconnect: Box::new(|| {
-                        Box::pin(async {
-                            tracing::info!("Disconnected");
-                        })
-                    }),
-                    on_reconnect: Box::new(|| {
-                        Box::pin(async {
-                            tracing::info!("Reconnected");
-                        })
-                    }),
-                },
-                identity,
-            )
-            .await
-            .unwrap_or_else(|err| {
-                tracing::error!("Failed to connect to {}:{} because {}", address, port, err);
-                panic!();
+        let client = Client::try_new_w_config(
+            SocketAddrV4::new(address, port),
+            Config {
+                connect_timeout: 30000,
+                disconnect_retry_interval: 10000,
+                should_reconnect: Box::new(default_should_reconnect),
+                on_announce: Box::new(|_| {
+                    Box::pin(async {
+                        tracing::info!("Announced");
+                    })
+                }),
+                on_un_announce: Box::new(|_| {
+                    Box::pin(async {
+                        tracing::info!("Un-announced");
+                    })
+                }),
+                on_disconnect: Box::new(|| {
+                    Box::pin(async {
+                        tracing::info!("Disconnected");
+                    })
+                }),
+                on_reconnect: Box::new(|| {
+                    Box::pin(async {
+                        tracing::info!("Reconnected");
+                    })
+                }),
+            },
+            identity,
+        )
+        .await
+        .unwrap_or_else(|err| {
+            tracing::error!("Failed to connect to {}:{} because {}", address, port, err);
+            panic!();
+        });
+
+        let mut table = MushroomTable::new(client.real_server_time());
+
+        loop {
+            let start_time = std::time::Instant::now();
+
+            let new_sub_data = subscriptions.try_recv();
+            if let Ok(new_sub_data) = new_sub_data {
+                for sub_data in new_sub_data {
+                    let name = sub_data.name.clone();
+                    let options = sub_data.options.clone();
+                    if subs.contains_key(&name) {
+                        client.unsubscribe(subs.remove(&name).unwrap()).await.ok();
+                    }
+                    let sub = client
+                        .subscribe_w_options(&[name.clone()], options)
+                        .await
+                        .unwrap_or_else(|err| {
+                            tracing::error!("Failed to subscribe to {}:{}", address, port);
+                            tracing::error!("Error: {}", err);
+                            panic!();
+                        });
+                    subs.insert(name.clone(), sub);
+                    tracing::info!("Subscribed to {}:{}:{}", address, port, name);
+                }
+            }
+
+            let new_pub_data = input.try_recv();
+            if let Ok(table) = new_pub_data {
+                for entry in table.get_entries() {
+                    let path = String::from(entry.get_path());
+                    if !pubs.contains_key(&path) {
+                        let topic = client
+                            .publish_topic(path.as_str(), Type::from(entry.get_value()), None)
+                            .await
+                            .unwrap();
+                        pubs.insert(path.clone(), topic);
+                    }
+                    let topic = pubs.get(&path).unwrap();
+                    client
+                        .publish_value(topic, &rmpv::Value::from(entry.get_value()))
+                        .await
+                        .ok();
+                    tracing::info!("Published to {}:{}:{}", address, port, path);
+                }
+            }
+
+            //use client timestamp
+            let mut new_table_data: MushroomTable =
+                MushroomTable::new(client.real_server_time());
+            for sub in subs.values_mut() {
+                while let Ok(msg) = sub.try_next().await {
+                    let entry = MushroomEntry::new(
+                        msg.data.into(),
+                        msg.topic_name.into(),
+                        Some(client.to_real_time(msg.timestamp) as f64),
+                    );
+                    new_table_data.add_entry(entry);
+                }
+            }
+            table.update_all(&new_table_data);
+            output.update(table.clone()).unwrap_or_else(|err| {
+                tracing::error!(
+                    "Failed to send to network table client {}:{}",
+                    address,
+                    port
+                );
+                tracing::error!("Error: {}", err);
             });
 
-            let mut table = MushroomTable::new(client.real_server_time());
-
-            loop {
-                let start_time = std::time::Instant::now();
-
-                let new_sub_data = subscriptions.try_recv();
-                if let Ok(new_sub_data) = new_sub_data {
-                    for sub_data in new_sub_data {
-                        let name = sub_data.name.clone();
-                        let options = sub_data.options.clone();
-                        if subs.contains_key(&name) {
-                            client.unsubscribe(subs.remove(&name).unwrap()).await.ok();
-                        }
-                        let sub = client
-                            .subscribe_w_options(&[name.clone()], options)
-                            .await
-                            .unwrap_or_else(|err| {
-                                tracing::error!("Failed to subscribe to {}:{}", address, port);
-                                tracing::error!("Error: {}", err);
-                                panic!();
-                            });
-                        subs.insert(name.clone(), sub);
-                        tracing::info!("Subscribed to {}:{}:{}", address, port, name);
-                    }
-                }
-
-                let new_pub_data = input.try_recv();
-                if let Ok(table) = new_pub_data {
-                    for entry in table.get_entries() {
-                        let path = String::from(entry.get_path());
-                        if !pubs.contains_key(&path) {
-                            let topic = client
-                                .publish_topic(path.as_str(), Type::from(entry.get_value()), None)
-                                .await
-                                .unwrap();
-                            pubs.insert(path.clone(), topic);
-                        }
-                        let topic = pubs.get(&path).unwrap();
-                        client
-                            .publish_value(topic, &rmpv::Value::from(entry.get_value()))
-                            .await
-                            .ok();
-                        tracing::info!("Published to {}:{}:{}", address, port, path);
-                    }
-                }
-
-                //use client timestamp
-                let mut new_table_data: MushroomTable =
-                    MushroomTable::new(client.real_server_time());
-                for sub in subs.values_mut() {
-                    while let Ok(msg) = sub.try_next().await {
-                        let entry = MushroomEntry::new(
-                            msg.data.into(),
-                            msg.topic_name.into(),
-                            Some(client.to_real_time(msg.timestamp) as f64),
-                        );
-                        new_table_data.add_entry(entry);
-                    }
-                }
-                table.update_all(&new_table_data);
-                output.update(table.clone()).unwrap_or_else(|err| {
-                    tracing::error!(
-                        "Failed to send to network table client {}:{}",
-                        address,
-                        port
-                    );
-                    tracing::error!("Error: {}", err);
-                });
-
-                let elapsed = start_time.elapsed();
-                tokio::time::sleep(Duration::from_secs_f64(
-                    (Duration::from_millis(15) - elapsed)
-                        .as_secs_f64()
-                        .clamp(0.0, 0.015),
-                ))
-                .await;
-            }
-        })
-    })
+            let elapsed = start_time.elapsed();
+            tokio::time::sleep(Duration::from_secs_f64(
+                (Duration::from_millis(15) - elapsed)
+                    .as_secs_f64()
+                    .clamp(0.0, 0.015),
+            ))
+            .await;
+        }
+    }).unwrap()
 }

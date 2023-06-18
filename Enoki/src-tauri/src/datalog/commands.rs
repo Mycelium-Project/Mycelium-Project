@@ -1,8 +1,8 @@
 use wpilog::log::DatalogEntryResponse;
 
-use crate::{error::{log_result, EnokiError}, DATALOG};
+use crate::error::{log_result, EnokiError};
 
-use super::handler::open_datalog;
+use super::{handler::open_datalog, DATALOG};
 
 
 #[tauri::command]
@@ -13,6 +13,6 @@ pub fn read_datalog(path: String) -> Result<Vec<DatalogEntryResponse>, EnokiErro
 }
 
 #[tauri::command]
-pub fn retrieve_dl_daemon_data() -> Vec<DatalogEntryResponse> {
-    DATALOG.with(|datalog| datalog.borrow_mut().get_all_entries().clone())
+pub async fn retrieve_dl_daemon_data() -> Vec<DatalogEntryResponse> {
+    DATALOG.lock().await.get_all_entries().clone()
 }

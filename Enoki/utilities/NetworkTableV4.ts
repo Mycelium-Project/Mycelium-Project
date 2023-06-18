@@ -20,7 +20,7 @@ export type DisplayTableEntry = {
   last_updated: number;
 };
 
-export class NetworkTableHandlerId {
+export class NetworkTableClientId {
   ip: number[];
   port: number;
   identity: string;
@@ -31,26 +31,26 @@ export class NetworkTableHandlerId {
   }
 
   /**
-   * Checks if the network table client associated with this handlerId is running
+   * Checks if the network table client associated with this clientId is running
    * @return a boolean representing whether the client is connected
    *
    * This function calls on the native backend and may result in a crash.
    */
-  public async doesNetworkTableHandlerExist(): Promise<boolean> {
-    return DoesNetworkTableHandlerExist(this);
+  public async doesNetworkTableClientExist(): Promise<boolean> {
+    return DoesNetworkTableClientExist(this);
   }
 
   /**
-   * Ends the network table client associated with this handlerId
+   * Ends the network table client associated with this clientId
    *
    * This function calls on the native backend and may result in a crash.
    */
-  public stopNetworkTableHandler(): void {
-    StopNetworkTableHandler(this);
+  public stopNetworkTableClient(): void {
+    StopNetworkTableClient(this);
   }
 
   /**
-   * Subscribes to a topic on the network table client associated with this handlerId
+   * Subscribes to a topic on the network table client associated with this clientId
    * @param topic the topic to subscribe to
    * @param periodic the period to update the value of the topic at
    * @param all whether or not to subscribe to all entries in the topic
@@ -72,7 +72,7 @@ export class NetworkTableHandlerId {
   }
 
   /**
-   * Sets the value of a topic on the network table client associated with this handlerId.
+   * Sets the value of a topic on the network table client associated with this clientId.
    * infers the type of the value and calls the appropriate function
    * @param topic the topic to set the value of
    * @param value the value to set the topic to
@@ -261,52 +261,49 @@ export class TableEntry {
  *
  * This function calls on the native backend and may result in a crash.
  */
-export function StartNetworkTableHandler(
+export async function StartNetworkTableClient(
   address: number[],
   port: number,
   identity: string
-): NetworkTableHandlerId {
-  invoke("start_network_table_handler", { address, port, identity }).catch(
-    console.error
-  );
-  return new NetworkTableHandlerId(address, port, identity);
+): Promise<NetworkTableClientId> {
+  return invoke<NetworkTableClientId>("plugin:nt|start_network_table_client", { address, port, identity })
 }
 
 /**
- * Checks if a network table client is connected to the specified NetworkTableHandlerId
- * @param handlerId the handlerId of the network table client to check
+ * Checks if a network table client is connected to the specified NetworkTableClientId
+ * @param clientId the clientId of the network table client to check
  *
  * @return a boolean representing whether the client is connected
- * if the client handlerId is undefined it will return false by default.
+ * if the client clientId is undefined it will return false by default.
  *
  * This function calls on the native backend and may result in a crash.
  */
-export async function DoesNetworkTableHandlerExist(
-  handlerId: NetworkTableHandlerId
+export async function DoesNetworkTableClientExist(
+  clientId: NetworkTableClientId
 ): Promise<boolean> {
-  if (handlerId == undefined) {
+  if (clientId == undefined) {
     return false;
   }
-  return invoke("does_network_table_handler_exist", {
-    handlerId,
-  }).catch(console.error) as Promise<boolean>;
+  return invoke<boolean>("plugin:nt|does_network_table_client_exist", {
+    clientId,
+  });
 }
 
 /**
  * Ends a network table client connected to the specified address and port
- * @param handlerId the handlerId of the network table client to stop
+ * @param clientId the clientId of the network table client to stop
  *
  * This function calls on the native backend and may result in a crash.
  */
-export function StopNetworkTableHandler(
-  handlerId: NetworkTableHandlerId
+export function StopNetworkTableClient(
+  clientId: NetworkTableClientId
 ): void {
-  invoke("stop_network_table_handler", { handlerId }).catch(console.error);
+  invoke("plugin:nt|stop_network_table_client", { clientId }).catch(console.error);
 }
 
 /**
- * Subscribes to a topic on the network table client associated with the specified handlerId
- * @param handlerId the handlerId of the network table client to set the value of
+ * Subscribes to a topic on the network table client associated with the specified clientId
+ * @param clientId the clientId of the network table client to set the value of
  * @param topic the topic to subscribe to
  * @param periodic the period to update the value of the topic at
  * @param all whether or not to subscribe to all entries in the topic
@@ -315,14 +312,14 @@ export function StopNetworkTableHandler(
  * This function calls on the native backend and may result in a crash.
  */
 export function Subscribe(
-  handlerId: NetworkTableHandlerId,
+  clientId: NetworkTableClientId,
   topic: String,
   periodic?: number,
   all?: boolean,
   prefix?: boolean
 ): void {
-  invoke("subscribe_to_topic", {
-    handlerId,
+  invoke("plugin:nt|subscribe_to_topic", {
+    clientId,
     topic,
     periodic,
     all,
@@ -332,132 +329,132 @@ export function Subscribe(
 
 /**
  * Unsubscribes from a topic
- * @param handlerId the handlerId of the network table client to set the value of
+ * @param clientId the clientId of the network table client to set the value of
  * @param topic the topic to unsubscribe from
  *
  * This function calls on the native backend and may result in a crash.
  */
 export function Unsubscribe(
-  handlerId: NetworkTableHandlerId,
+  clientId: NetworkTableClientId,
   topic: String
 ): void {
-  invoke("unsubscribe_from_topic", { handlerId, topic }).catch(console.error);
+  invoke("plugin:nt|unsubscribe_from_topic", { clientId, topic }).catch(console.error);
 }
 
 /**
  * Sets the value of an integer topic
- * @param handlerId the handlerId of the network table client to set the value of
+ * @param clientId the clientId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the integer value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
  */
 export function SetInteger(
-  handlerId: NetworkTableHandlerId,
+  clientId: NetworkTableClientId,
   topic: String,
   value: Number
 ): void {
   let primValue: number = Math.round(value.valueOf());
-  invoke("set_int_topic", { handlerId, topic, value: primValue }).catch(
+  invoke("plugin:nt|set_int_topic", { clientId, topic, value: primValue }).catch(
     console.error
   );
 }
 
 /**
  * Sets the value of an integer array topic
- * @param handlerId the handlerId of the network table client to set the value of
+ * @param clientId the clientId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the integer array value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
  */
 export function SetIntegerArray(
-  handlerId: NetworkTableHandlerId,
+  clientId: NetworkTableClientId,
   topic: String,
   value: Number[]
 ): void {
   let primValue: number[] = value.map((val: Number) =>
     Math.round(val.valueOf())
   );
-  invoke("set_int_array_topic", { handlerId, topic, value: primValue }).catch(
+  invoke("plugin:nt|set_int_array_topic", { clientId, topic, value: primValue }).catch(
     console.error
   );
 }
 
 /**
  * Sets the value of a floating point topic, which is a f32 in rust
- * @param handlerId the handlerId of the network table client to set the value of
+ * @param clientId the clientId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the floating point value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
  */
 export function SetFloat(
-  handlerId: NetworkTableHandlerId,
+  clientId: NetworkTableClientId,
   topic: String,
   value: Number
 ): void {
   let primValue: number = value.valueOf();
-  invoke("set_float_topic", { handlerId, topic, value: primValue }).catch(
+  invoke("plugin:nt|set_float_topic", { clientId, topic, value: primValue }).catch(
     console.error
   );
 }
 
 /**
  * Sets the value of a floating point array topic, which is a f32 in rust
- * @param handlerId the handlerId of the network table client to set the value of
+ * @param clientId the clientId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the floating point array value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
  */
 export function SetFloatArray(
-  handlerId: NetworkTableHandlerId,
+  clientId: NetworkTableClientId,
   topic: String,
   value: Number[]
 ): void {
   let primValue: number[] = value.map((val: Number) => val.valueOf());
   //maybe should clamp to f32 range
-  invoke("set_float_array_topic", { handlerId, topic, value: primValue }).catch(
+  invoke("plugin:nt|set_float_array_topic", { clientId, topic, value: primValue }).catch(
     console.error
   );
 }
 
 /**
  * Sets the value of a double topic, which is a f64 in rust
- * @param handlerId the handlerId of the network table client to set the value of
+ * @param clientId the clientId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the double value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
  */
 export function SetDouble(
-  handlerId: NetworkTableHandlerId,
+  clientId: NetworkTableClientId,
   topic: String,
   value: Number
 ): void {
   let primValue: number = value.valueOf();
-  invoke("set_double_topic", { handlerId, topic, value: primValue }).catch(
+  invoke("plugin:nt|set_double_topic", { clientId, topic, value: primValue }).catch(
     console.error
   );
 }
 
 /**
  * Sets the value of a double array topic, which is a f64 in rust
- * @param handlerId the handlerId of the network table client to set the value of
+ * @param clientId the clientId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the double array value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
  */
 export function SetDoubleArray(
-  handlerId: NetworkTableHandlerId,
+  clientId: NetworkTableClientId,
   topic: String,
   value: Number[]
 ): void {
   let primValue: number[] = value.map((val: Number) => val.valueOf());
-  invoke("set_double_array_topic", {
-    handlerId,
+  invoke("plugin:nt|set_double_array_topic", {
+    clientId,
     topic,
     value: primValue,
   }).catch(console.error);
@@ -465,39 +462,39 @@ export function SetDoubleArray(
 
 /**
  * Sets the value of a boolean topic
- * @param handlerId the handlerId of the network table client to set the value of
+ * @param clientId the clientId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the boolean value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
  */
 export function SetBoolean(
-  handlerId: NetworkTableHandlerId,
+  clientId: NetworkTableClientId,
   topic: String,
   value: Boolean
 ): void {
   let primValue: boolean = value.valueOf();
-  invoke("set_boolean_topic", { handlerId, topic, value: primValue }).catch(
+  invoke("plugin:nt|set_boolean_topic", { clientId, topic, value: primValue }).catch(
     console.error
   );
 }
 
 /**
  * Sets the value of a boolean array topic
- * @param handlerId the handlerId of the network table client to set the value of
+ * @param clientId the clientId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the boolean array value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
  */
 export function SetBooleanArray(
-  handlerId: NetworkTableHandlerId,
+  clientId: NetworkTableClientId,
   topic: String,
   value: Boolean[]
 ): void {
   let primValue: boolean[] = value.map((val: Boolean) => val.valueOf());
-  invoke("set_boolean_array_topic", {
-    handlerId,
+  invoke("plugin:nt|set_boolean_array_topic", {
+    clientId,
     topic,
     value: primValue,
   }).catch(console.error);
@@ -505,101 +502,101 @@ export function SetBooleanArray(
 
 /**
  * Sets the value of a byte array topic
- * @param handlerId the handlerId of the network table client to set the value of
+ * @param clientId the clientId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the byte array value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
  */
 export function SetByteArray(
-  handlerId: NetworkTableHandlerId,
+  clientId: NetworkTableClientId,
   topic: String,
   value: Uint8Array
 ): void {
   let byteArray: number[] = Array.from(value);
-  invoke("set_byte_array_topic", { handlerId, topic, value: byteArray }).catch(
+  invoke("plugin:nt|set_byte_array_topic", { clientId, topic, value: byteArray }).catch(
     console.error
   );
 }
 
 /**
  * Sets the value of a string topic
- * @param handlerId the handlerId of the network table client to set the value of
+ * @param clientId the clientId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the string value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
  */
 export function SetString(
-  handlerId: NetworkTableHandlerId,
+  clientId: NetworkTableClientId,
   topic: String,
   value: String
 ): void {
   let primValue: string = value.valueOf();
-  invoke("set_string_topic", { handlerId, topic, value: primValue }).catch(
+  invoke("plugin:nt|set_string_topic", { clientId, topic, value: primValue }).catch(
     console.error
   );
 }
 
 /**
  * Sets the value of a string array topic
- * @param handlerId the handlerId of the network table client to set the value of
+ * @param clientId the clientId of the network table client to set the value of
  * @param topic the topic to set the value of
  * @param value the string array value to set the topic to
  *
  * This function calls on the native backend and may result in a crash.
  */
 export function SetStringArray(
-  handlerId: NetworkTableHandlerId,
+  clientId: NetworkTableClientId,
   topic: String,
   value: String[]
 ): void {
   let primValue: string[] = value.map((val: String) => val.valueOf());
-  invoke("set_string_array_topic", {
-    handlerId,
+  invoke("plugin:nt|set_string_array_topic", {
+    clientId,
     topic,
     value: primValue,
   }).catch(console.error);
 }
 
 /**
- * Gets all the subbed topic entries for a given handlerId
- * @param handlerId the handlerId of the network table client to get the entries of
+ * Gets all the subbed topic entries for a given clientId
+ * @param clientId the clientId of the network table client to get the entries of
  *
  * @returns an array of TableEntry objects
  */
 export async function GetEntries(
-  handlerId: NetworkTableHandlerId
+  clientId: NetworkTableClientId
 ): Promise<TableEntry[]> {
-  return invoke("get_subbed_entries_values", { handlerId }).catch(
+  return invoke("plugin:nt|get_subbed_entries_values", { clientId }).catch(
     console.error
   ) as Promise<TableEntry[]>;
 }
 
 /**
- * Gets the value of a topic for a given handlerId and path
- * @param handlerId the handlerId of the network table client to get the value of
+ * Gets the value of a topic for a given clientId and path
+ * @param clientId the clientId of the network table client to get the value of
  * @param path the path of the topic to get the value of
  *
  * @returns the TableEntry of the topic
  */
 export async function GetEntry(
-  handlerId: NetworkTableHandlerId,
+  clientId: NetworkTableClientId,
   path: String
 ): Promise<TableEntry> {
-  return invoke("get_subbed_entry_value", { handlerId, path }).catch(
+  return invoke("plugin:nt|get_subbed_entry_value", { clientId, path }).catch(
     console.error
   ) as Promise<TableEntry>;
 }
 
 /**
- * Gets the server timestamp of the server that the client associated with handlerId is connected to
- * @param handlerId the handlerId of the network table client to get the server timestamp of
+ * Gets the server timestamp of the server that the client associated with clientId is connected to
+ * @param clientId the clientId of the network table client to get the server timestamp of
  *
  * @returns seconds since the unix epoch
  */
-export function GetServerTimestamp(handlerId: NetworkTableHandlerId): number {
-  invoke("get_handler_timestamp", { handlerId }).then((timestamp) => {
+export function GetServerTimestamp(clientId: NetworkTableClientId): number {
+  invoke("plugin:nt|get_client_timestamp", { clientId }).then((timestamp) => {
     return timestamp;
   });
   return 0;

@@ -1,25 +1,22 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use error::{EnokiError, TraceWriter};
+use datalog::handler::log_datalog_value;
+use error::TraceWriter;
 use mushroom_types::MushroomValue;
-use networktable::handler::{
-    get_connect_client_names, NetworkTableClient, NetworkTableClientId,
-};
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::thread;
+use networktable::handler::get_connect_client_names;
+
+
 use tauri::plugin::TauriPlugin;
 use tauri::{RunEvent, Runtime};
 use tracing::metadata::LevelFilter;
-use wpilog::log::DataLogDaemon;
 
-use crate::datalog::handler::{create_datalog_daemon, log_datalog_value, start_datalog_entry};
+use crate::datalog::handler::start_datalog_entry;
+use crate::datalog::DATALOG;
+// use crate::datalog::handler::{create_datalog_daemon, log_datalog_value, start_datalog_entry};
 use crate::error::log_result_consume;
-
-use crate::datalog::commands::*;
-use crate::networktable::commands::*;
-
+use crate::frontend_helpers::logging::tracing_frontend;
+use crate::networktable::NETWORK_CLIENT_MAP;
 
 mod error;
 pub mod mushroom_types;
@@ -27,23 +24,11 @@ pub mod mushroom_types;
 #[cfg(test)]
 mod test;
 
-#[macro_use]
 pub mod datalog;
+pub mod frontend_helpers;
 pub mod networktable;
 
-thread_local! {
 
-    static THREAD_POOL: RefCell<Option<tokio::runtime::Runtime>> = RefCell::new(
-        Some(tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(4)
-        .enable_all()
-        .build()
-        .unwrap()));
-
-    static NETWORK_CLIENT_MAP: RefCell<HashMap<NetworkTableClientId, NetworkTableClient>> = RefCell::new(HashMap::new());
-
-    static DATALOG: RefCell<DataLogDaemon> = RefCell::new(create_datalog_daemon());
-}
 
 #[tokio::main]
 async fn main() {
@@ -77,85 +62,63 @@ async fn main() {
 
     tauri::Builder::default()
         .plugin(backend_plugin())
-        .invoke_handler(tauri::generate_handler![
-            start_network_table_client,
-            stop_network_table_client,
-            does_network_table_client_exist,
-            subscribe_to_topic,
-            set_boolean_topic,
-            set_float_topic,
-            set_double_topic,
-            set_string_topic,
-            set_int_topic,
-            set_boolean_array_topic,
-            set_float_array_topic,
-            set_double_array_topic,
-            set_string_array_topic,
-            set_int_array_topic,
-            get_subbed_entries_values,
-            get_client_timestamp,
-            get_subbed_entry_value,
-            retrieve_dl_daemon_data,
-            read_datalog
-        ])
+        .plugin(frontend_helpers::appvars_plugin())
+        .plugin(networktable::networktable_plugin())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
 
 pub fn backend_plugin<R: Runtime>() -> TauriPlugin<R> {
-    tauri::plugin::Builder::new("backend_plugin")
+    tauri::plugin::Builder::new("native")
         .on_event(move |_app_handle, event| match event {
+            RunEvent::Ready => {
+                // tauri::async_runtime::block_on(init());
+                tauri::async_runtime::spawn(init());
+            }
             RunEvent::MainEventsCleared => {
-                per_frame();
+                // tauri::async_runtime::block_on(per_frame());
+                tauri::async_runtime::spawn(per_frame());
             }
             RunEvent::ExitRequested { .. } => {
-                close();
-            }
-            RunEvent::Ready => {
-                init();
+                // tauri::async_runtime::block_on(close());
+                tauri::async_runtime::spawn(close());
             }
             _ => {}
         })
+        .invoke_handler(
+            tauri::generate_handler![tracing_frontend])
         .build()
+}
+
+///called when the ui first starts up
+async fn init() {
+    tracing::info!("Init");
+    log_result_consume(
+        start_datalog_entry(
+            "/ClientsConnected",
+            "string[]",
+            Some("Clients running from the app"),
+        )
+        .await,
+    );
 }
 
 ///anything put in this will run once per frame of the ui, keep it light
 /// WARNING: only called while window is focused
 /// if you need something to run in the background *at all times* use a thread
-fn per_frame() {
-    log_result_consume(log_datalog_value(
-        "/ClientsConnected",
-        MushroomValue::StringArray(get_connect_client_names()),
-    ));
-}
-
-///called when the ui first starts up
-fn init() {
-    tracing::info!("Init");
-    log_result_consume(start_datalog_entry(
-        "/ClientsConnected",
-        "string[]",
-        Some("Clients running from the app"),
-    ));
+async fn per_frame() {
+    log_result_consume(
+        log_datalog_value(
+            "/ClientsConnected",
+            MushroomValue::StringArray(get_connect_client_names().await),
+        )
+        .await,
+    );
 }
 
 ///called when the app is shutting down
-fn close() {
+async fn close() {
     tracing::info!("Closing");
-    DATALOG.with(|daemon| daemon.borrow_mut().kill());
-    THREAD_POOL.with(|pool| (pool.replace(None)).unwrap().shutdown_background());
-    NETWORK_CLIENT_MAP.with(|map| map.borrow_mut().clear());
+    DATALOG.lock().await.kill();
+    NETWORK_CLIENT_MAP.lock().await.clear();
 }
-
-/// used in non-command functions that use thread loacal variables
-/// commands are guranteed to be called in the scope of the main thread
-fn check_if_main_thread() -> Result<(), EnokiError> {
-    if thread::current().name().unwrap_or_default() != "main" {
-        return Err(EnokiError::NotMainThread(String::from(
-            thread::current().name().unwrap_or_default(),
-        )));
-    }
-    Ok(())
-}
-
-

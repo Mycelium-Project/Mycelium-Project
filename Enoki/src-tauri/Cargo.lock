@@ -756,6 +756,8 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "network-tables",
+ "nu-ansi-term 0.47.0",
+ "once_cell",
  "rmpv",
  "serde",
  "serde_json",
@@ -1936,6 +1938,15 @@ checksum = "77a8165726e8236064dbb45459242600304b42a5ea24ee2948e18e023bf7ba84"
 dependencies = [
  "overload",
  "winapi",
+]
+
+[[package]]
+name = "nu-ansi-term"
+version = "0.47.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1df031e117bca634c262e9bd3173776844b6c17a90b3741c9163663b4385af76"
+dependencies = [
+ "windows-sys 0.45.0",
 ]
 
 [[package]]
@@ -3257,9 +3268,9 @@ checksum = "fd1ba337640d60c3e96bc6f0638a939b9c9a7f2c316a1598c279828b3d1dc8c5"
 
 [[package]]
 name = "tauri"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc35893c7e08d9564a9206bd52182dce031b0d5132dc946b3e166e00d03f8cfe"
+checksum = "7fbe522898e35407a8e60dc3870f7579fea2fc262a6a6072eccdd37ae1e1d91e"
 dependencies = [
  "anyhow",
  "bytes",
@@ -3586,6 +3597,7 @@ dependencies = [
  "pin-project-lite",
  "socket2",
  "tokio-macros",
+ "tracing",
  "windows-sys 0.48.0",
 ]
 
@@ -3747,7 +3759,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30a651bc37f915e81f087d86e62a18eec5f79550c7faff886f7090b4ea757c77"
 dependencies = [
  "matchers",
- "nu-ansi-term",
+ "nu-ansi-term 0.46.0",
  "once_cell",
  "regex",
  "sharded-slab",
