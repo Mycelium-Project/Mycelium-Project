@@ -8,8 +8,9 @@ export function TraceInfo(message: any, ...optionalParams: any[]): void {
     let stack = new Error().stack ?? "";
     let caller = stack.split("\n")[2];
     let callerParts = caller.split(" ");
-    let callerFile = callerParts[callerParts.length - 1].split("/").pop();
-    let callerLine = callerFile
+    let inter = callerParts[callerParts.length - 1].split("/").pop();
+    let callerFile = inter?.split(":")[0];
+    let callerLine = inter?.split(":")[1].split(")")[0];
     if (optionalParams.length === 0) {
         invoke("plugin:native|tracing_frontend", { level: "info", msg: message.toString(),
             line: callerLine,
@@ -30,8 +31,6 @@ export function TraceWarn(message: any, ...optionalParams: any[]): void {
     let inter = callerParts[callerParts.length - 1].split("/").pop();
     let callerFile = inter?.split(":")[0];
     let callerLine = inter?.split(":")[1].split(")")[0];
-    console.log(callerFile);
-    console.log(callerLine);
     if (optionalParams.length === 0) {
         invoke("plugin:native|tracing_frontend", { level: "warn", msg: message.toString(),
             line: callerLine,
@@ -49,8 +48,9 @@ export function TraceError(message: any, ...optionalParams: any[]): void {
     let stack = new Error().stack ?? "";
     let caller = stack.split("\n")[2];
     let callerParts = caller.split(" ");
-    let callerFile = callerParts[callerParts.length - 1].split("/").pop();
-    let callerLine = callerParts[callerParts.length - 1].split(":")[1].split(")")[0];
+    let inter = callerParts[callerParts.length - 1].split("/").pop();
+    let callerFile = inter?.split(":")[0];
+    let callerLine = inter?.split(":")[1].split(")")[0];
     if (optionalParams.length === 0) {
         invoke("plugin:native|tracing_frontend", { level: "error", msg: message.toString(),
             line: callerLine,
