@@ -160,7 +160,6 @@ let testTable: NetworkTableClientId;
 
 async function StartNTClient(): Promise<void> {
   console.log("Starting NetworkTables");
-  TraceWarn("TEST");
   testTable = await StartNetworkTableClient([74, 65, 89, 147], 5800, "Enoki-test");
 }
 
