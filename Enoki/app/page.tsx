@@ -13,6 +13,15 @@ import { window } from "@tauri-apps/api";
 import { TauriEvent } from "@tauri-apps/api/event";
 import NetworkTable from "@/app/components/network_table";
 import { TraceWarn } from "@/utilities/Tracing";
+import { LargeButton } from "@/app/components/buttons";
+
+window
+  .getCurrent()
+  .listen(TauriEvent.WINDOW_CLOSE_REQUESTED, (): boolean => {
+    invoke("close").then();
+    return true;
+  })
+  .then();
 
 export default function Home(): JSX.Element {
   return (
@@ -22,24 +31,6 @@ export default function Home(): JSX.Element {
           Get started by opening&nbsp;
           <code className="font-mono font-bold">docs/developing.md</code>
         </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
       </div>
 
       <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px]">
@@ -56,100 +47,47 @@ export default function Home(): JSX.Element {
       <NetworkTable />
 
       <div className="mb-32 grid text-center lg:mb-0 lg:grid-cols-3 lg:text-left">
-        <button
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          onClick={StartNTClient}
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Connect{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Click here to connect to the network tables server on localhost:5810
-          </p>
-        </button>
+        <LargeButton
+          title="Connect"
+          subtext="Click here to connect to the network tables server on localhost:5810"
+          action={StartNTClient}
+        />
 
-        <button
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          onClick={StopNT4Client}
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Disconnect{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Click here to disconnect from the network tables server on
-            localhost:5810
-          </p>
-        </button>
+        <LargeButton
+          title="Disconnect"
+          subtext="Click here to disconnect from the network tables server on localhost:5810"
+          action={StopNTClient}
+        />
 
-        <button
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          onClick={SubscribeExample}
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Subscribe{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Click here to subscribe to a value on the network tables server on
-            localhost:5810
-          </p>
-        </button>
+        <LargeButton
+          title="Subscribe"
+          subtext="Click here to subscribe to a value on the network tables server on localhost:5810"
+          action={SubscribeExample}
+        />
 
-        <button
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          onClick={PublishExample}
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Publish{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Click here to subscribe to a publish on the network tables server on
-            localhost:5810
-          </p>
-        </button>
+        <LargeButton
+          action={PublishExample}
+          title={"Publish"}
+          subtext={
+            "Click here to publish a value on the network tables server on localhost:5810"
+          }
+        />
 
-        <button
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          onClick={DoesClientExist}
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Is Connected?{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Click here to check if a client exists for the network tables
-            server on localhost:5810
-          </p>
-        </button>
+        <LargeButton
+          action={DoesClientExist}
+          title={"Is Connected?"}
+          subtext={
+            "Click here to check if a handler exists for the network tables server on localhost:5810"
+          }
+        />
 
-        <button
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          onClick={PollSubscriptions}
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Get Subbed{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Click here to poll all subbed data on the network tables server on
-            localhost:5810
-          </p>
-        </button>
+        <LargeButton
+          action={PollSubscriptions}
+          title={"Get Subbed"}
+          subtext={
+            "Click here to poll all subbed data on the network tables server on localhost:5810"
+          }
+        />
       </div>
     </main>
   );
@@ -163,7 +101,7 @@ async function StartNTClient(): Promise<void> {
   testTable = await StartNetworkTableClient([74, 65, 89, 147], 5800, "Enoki-test");
 }
 
-function StopNT4Client(): void {
+function StopNTClient(): void {
   console.log("Stopping NetworkTables");
   if (testTable) {
     testTable.stopNetworkTableClient();

@@ -282,9 +282,6 @@ export async function StartNetworkTableClient(
 export async function DoesNetworkTableClientExist(
   clientId: NetworkTableClientId
 ): Promise<boolean> {
-  if (clientId == undefined) {
-    return false;
-  }
   return invoke<boolean>("plugin:nt|does_network_table_client_exist", {
     clientId,
   });
@@ -415,9 +412,9 @@ export function SetFloatArray(
   value: Number[]
 ): void {
   let primValue: number[] = value.map((val: Number) => val.valueOf());
-  //maybe should clamp to f32 range
+  //TODO: should clamp to f32 range
   invoke("plugin:nt|set_float_array_topic", { clientId, topic, value: primValue }).catch(
-    console.error
+      console.error
   );
 }
 
