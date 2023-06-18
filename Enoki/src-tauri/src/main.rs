@@ -6,7 +6,6 @@ use error::TraceWriter;
 use mushroom_types::MushroomValue;
 use networktable::handler::get_connect_client_names;
 
-
 use tauri::plugin::TauriPlugin;
 use tauri::{RunEvent, Runtime};
 use tracing::metadata::LevelFilter;
@@ -27,8 +26,7 @@ mod test;
 pub mod datalog;
 pub mod frontend_helpers;
 pub mod networktable;
-
-
+pub mod terminal;
 
 #[tokio::main]
 async fn main() {
@@ -64,6 +62,7 @@ async fn main() {
         .plugin(backend_plugin())
         .plugin(frontend_helpers::appvars_plugin())
         .plugin(networktable::networktable_plugin())
+        .plugin(terminal::terminal_plugin())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -85,8 +84,7 @@ pub fn backend_plugin<R: Runtime>() -> TauriPlugin<R> {
             }
             _ => {}
         })
-        .invoke_handler(
-            tauri::generate_handler![tracing_frontend])
+        .invoke_handler(tauri::generate_handler![tracing_frontend])
         .build()
 }
 
