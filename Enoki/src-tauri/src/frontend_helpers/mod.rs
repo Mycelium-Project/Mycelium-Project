@@ -2,6 +2,7 @@
 pub mod logging;
 pub mod keybinds;
 pub mod app_vars;
+pub mod windows;
 
 use app_vars::*;
 

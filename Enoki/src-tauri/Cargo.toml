@@ -30,6 +30,7 @@ tracing-appender = "0.2.2"
 once_cell = "1.18.0"
 nu-ansi-term = "0.48"
 parking_lot = "0.12.1"
+ping = "^0.4"
 
 # network-tables = { git = "https://github.com/oh-yes-0-fps/network-tables-rs", version = "0.1.4", features = [ "client-v4", "tracing" ] }
 # wpilog = { git = "https://github.com/oh-yes-0-fps/wpilog-rs", version = "^0.1", features = [ "tracing" ] }
@@ -37,6 +38,7 @@ parking_lot = "0.12.1"
 
 network-tables = { path = "../network-tables-rs", version = "0.1.4", features = [ "client-v4", "tracing" ] }
 wpilog = { path = "../wpilog-rs/", version = "^0.1", features = [ "tracing" ] }
+pyo3 = "0.19.0"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.

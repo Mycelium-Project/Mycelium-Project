@@ -8,20 +8,9 @@ import {
   StartNetworkTableClient,
   TableEntry,
 } from "@/utilities/NetworkTableV4";
-import { invoke } from "@tauri-apps/api/tauri";
-import { window } from "@tauri-apps/api";
-import { TauriEvent } from "@tauri-apps/api/event";
 import NetworkTable from "@/app/components/network_table";
 import { TraceWarn } from "@/utilities/Tracing";
 import { LargeButton } from "@/app/components/buttons";
-
-window
-  .getCurrent()
-  .listen(TauriEvent.WINDOW_CLOSE_REQUESTED, (): boolean => {
-    invoke("close").then();
-    return true;
-  })
-  .then();
 
 export default function Home(): JSX.Element {
   return (

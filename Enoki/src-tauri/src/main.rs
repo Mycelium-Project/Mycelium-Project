@@ -27,6 +27,7 @@ pub mod datalog;
 pub mod frontend_helpers;
 pub mod networktable;
 pub mod terminal;
+pub mod python_helpers;
 
 #[tokio::main]
 async fn main() {
@@ -53,6 +54,7 @@ async fn main() {
             .with_line_number(true)
             .with_level(true)
             .with_max_level(LevelFilter::WARN)
+            .with_ansi(false)
             .with_writer(non_blocking_file)
             .init();
         _guard_lock = _guard_file;
@@ -62,6 +64,7 @@ async fn main() {
         .plugin(backend_plugin())
         .plugin(frontend_helpers::appvars_plugin())
         .plugin(networktable::networktable_plugin())
+        .plugin(datalog::datalog_plugin())
         .plugin(terminal::terminal_plugin())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

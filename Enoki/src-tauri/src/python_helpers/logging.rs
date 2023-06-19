@@ -1,17 +1,18 @@
 
+use pyo3::prelude::*;
 use nu_ansi_term::{Style, Color};
 use tracing::{Level, field::Visit, dispatcher, Dispatch};
 
 thread_local! {
     static DISPATCH: Dispatch = Dispatch::new(
         tracing_subscriber::fmt()
-            .event_format(FrontendFormatter)
+            .event_format(ScriptingFormatter)
             .finish());
 }
 
 
-#[tauri::command]
-pub async fn tracing_frontend(level: String, msg: String, line: String, file: String) {
+#[pyfunction]
+pub fn tracing_frontend(level: String, msg: String, line: String, file: String) {
     if cfg!(debug_assertions) {
         DISPATCH.with(|dispatch| {
             dispatcher::with_default(&dispatch,
@@ -29,7 +30,7 @@ pub async fn tracing_frontend(level: String, msg: String, line: String, file: St
         });
     } else {
         std::thread::Builder::new()
-            .name("frontend".to_string())
+            .name("python".to_string())
             .spawn(move || {
                 match level.as_str() {
                     "trace" => tracing::trace!(message = msg),
@@ -44,9 +45,9 @@ pub async fn tracing_frontend(level: String, msg: String, line: String, file: St
 }
 
 //make a custom tracing formatter
-struct FrontendFormatter;
+struct ScriptingFormatter;
 
-impl<S, N> tracing_subscriber::fmt::FormatEvent<S, N> for FrontendFormatter
+impl<S, N> tracing_subscriber::fmt::FormatEvent<S, N> for ScriptingFormatter
 where
     S: tracing::Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
     N: for<'a> tracing_subscriber::fmt::FormatFields<'a> + 'static,
@@ -77,7 +78,7 @@ where
             writer,
             "{}{}{}:",
             target_style.prefix(),
-            "enoki::frontend",
+            "enoki::scripting",
             target_style.infix(style),
         )?;
 
@@ -91,7 +92,7 @@ where
 
         let dimmed = Style::new().dimmed().italic();
 
-        let pseudo_thread = "frontend";
+        let pseudo_thread = "python";
 
         write!(writer, "    {} ", dimmed.paint("at"))?;
 

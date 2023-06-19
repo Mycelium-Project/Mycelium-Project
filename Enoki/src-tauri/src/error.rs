@@ -12,6 +12,8 @@ pub enum EnokiError {
     NTTimeout(#[from] network_tables::NetworkTablesError),
     #[error("Not main thread: {0:?}")]
     NotMainThread(String),
+    #[error("No valid address found")]
+    NoValidAddress,
 }
 
 #[inline(always)]
@@ -45,7 +47,7 @@ pub struct TraceWriter {
 impl TraceWriter {
     pub fn new() -> Self {
         let currunt_time_string =
-            chrono::Local::now().format("%Y-%m-%d_%H-%M-%S").to_string() + ".debuglog";
+            chrono::Local::now().format("%Y-%m-%d_%H-%M-%S").to_string() + ".debuglog.txt";
 
         let file_path = document_dir()
             .unwrap()
