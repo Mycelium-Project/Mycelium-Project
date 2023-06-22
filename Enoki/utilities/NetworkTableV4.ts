@@ -51,6 +51,15 @@ export class NetworkTableClientId {
   }
 
   /**
+   * Starts the network table client associated with this clientId
+   *
+   * This function calls on the native backend and may result in a crash.
+   */
+  public startNetworkTableClient(): void {
+    StartNetworkTableClient(this.ip, this.port, this.identity);
+  }
+
+  /**
    * Subscribes to a topic on the network table client associated with this clientId
    * @param topic the topic to subscribe to
    * @param periodic the period to update the value of the topic at
@@ -267,7 +276,11 @@ export async function StartNetworkTableClient(
   port: number,
   identity: string
 ): Promise<NetworkTableClientId> {
-  return invoke<NetworkTableClientId>("plugin:nt|start_network_table_client", { address, port, identity })
+  return invoke<NetworkTableClientId>("plugin:nt|start_network_table_client", {
+    address,
+    port,
+    identity,
+  });
 }
 
 /**
@@ -293,10 +306,10 @@ export async function DoesNetworkTableClientExist(
  *
  * This function calls on the native backend and may result in a crash.
  */
-export function StopNetworkTableClient(
-  clientId: NetworkTableClientId
-): void {
-  invoke("plugin:nt|stop_network_table_client", { clientId }).catch(console.error);
+export function StopNetworkTableClient(clientId: NetworkTableClientId): void {
+  invoke("plugin:nt|stop_network_table_client", { clientId }).catch(
+    console.error
+  );
 }
 
 /**
@@ -336,7 +349,9 @@ export function Unsubscribe(
   clientId: NetworkTableClientId,
   topic: String
 ): void {
-  invoke("plugin:nt|unsubscribe_from_topic", { clientId, topic }).catch(console.error);
+  invoke("plugin:nt|unsubscribe_from_topic", { clientId, topic }).catch(
+    console.error
+  );
 }
 
 /**
@@ -353,9 +368,11 @@ export function SetInteger(
   value: Number
 ): void {
   let primValue: number = Math.round(value.valueOf());
-  invoke("plugin:nt|set_int_topic", { clientId, topic, value: primValue }).catch(
-    console.error
-  );
+  invoke("plugin:nt|set_int_topic", {
+    clientId,
+    topic,
+    value: primValue,
+  }).catch(console.error);
 }
 
 /**
@@ -374,9 +391,11 @@ export function SetIntegerArray(
   let primValue: number[] = value.map((val: Number) =>
     Math.round(val.valueOf())
   );
-  invoke("plugin:nt|set_int_array_topic", { clientId, topic, value: primValue }).catch(
-    console.error
-  );
+  invoke("plugin:nt|set_int_array_topic", {
+    clientId,
+    topic,
+    value: primValue,
+  }).catch(console.error);
 }
 
 /**
@@ -393,9 +412,11 @@ export function SetFloat(
   value: Number
 ): void {
   let primValue: number = value.valueOf();
-  invoke("plugin:nt|set_float_topic", { clientId, topic, value: primValue }).catch(
-    console.error
-  );
+  invoke("plugin:nt|set_float_topic", {
+    clientId,
+    topic,
+    value: primValue,
+  }).catch(console.error);
 }
 
 /**
@@ -413,9 +434,11 @@ export function SetFloatArray(
 ): void {
   let primValue: number[] = value.map((val: Number) => val.valueOf());
   //TODO: should clamp to f32 range
-  invoke("plugin:nt|set_float_array_topic", { clientId, topic, value: primValue }).catch(
-      console.error
-  );
+  invoke("plugin:nt|set_float_array_topic", {
+    clientId,
+    topic,
+    value: primValue,
+  }).catch(console.error);
 }
 
 /**
@@ -432,9 +455,11 @@ export function SetDouble(
   value: Number
 ): void {
   let primValue: number = value.valueOf();
-  invoke("plugin:nt|set_double_topic", { clientId, topic, value: primValue }).catch(
-    console.error
-  );
+  invoke("plugin:nt|set_double_topic", {
+    clientId,
+    topic,
+    value: primValue,
+  }).catch(console.error);
 }
 
 /**
@@ -472,9 +497,11 @@ export function SetBoolean(
   value: Boolean
 ): void {
   let primValue: boolean = value.valueOf();
-  invoke("plugin:nt|set_boolean_topic", { clientId, topic, value: primValue }).catch(
-    console.error
-  );
+  invoke("plugin:nt|set_boolean_topic", {
+    clientId,
+    topic,
+    value: primValue,
+  }).catch(console.error);
 }
 
 /**
@@ -512,9 +539,11 @@ export function SetByteArray(
   value: Uint8Array
 ): void {
   let byteArray: number[] = Array.from(value);
-  invoke("plugin:nt|set_byte_array_topic", { clientId, topic, value: byteArray }).catch(
-    console.error
-  );
+  invoke("plugin:nt|set_byte_array_topic", {
+    clientId,
+    topic,
+    value: byteArray,
+  }).catch(console.error);
 }
 
 /**
@@ -531,9 +560,11 @@ export function SetString(
   value: String
 ): void {
   let primValue: string = value.valueOf();
-  invoke("plugin:nt|set_string_topic", { clientId, topic, value: primValue }).catch(
-    console.error
-  );
+  invoke("plugin:nt|set_string_topic", {
+    clientId,
+    topic,
+    value: primValue,
+  }).catch(console.error);
 }
 
 /**
