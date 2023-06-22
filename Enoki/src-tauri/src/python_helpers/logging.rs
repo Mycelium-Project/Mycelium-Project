@@ -12,7 +12,7 @@ thread_local! {
 
 
 #[pyfunction]
-pub fn tracing_frontend(level: String, msg: String, line: String, file: String) {
+pub fn tracing_log(level: String, msg: String, line: String, file: String) {
     if cfg!(debug_assertions) {
         DISPATCH.with(|dispatch| {
             dispatcher::with_default(&dispatch,

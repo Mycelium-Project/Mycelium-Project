@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use tauri::api::path::document_dir;
 use wpilog::log::{CreateDataLogConfig, DataLog, DataLogDaemon, OpenDataLogConfig};
 
-use crate::{error::EnokiError, mushroom_types::MushroomValue};
+use crate::{error::EnokiError, enoki_types::EnokiValue};
 
 use super::DATALOG;
 
@@ -49,7 +49,7 @@ pub fn create_datalog_daemon() -> DataLogDaemon {
     };
 
     //if can't create datalog crash
-    let datalog = DataLog::create(config.clone()).expect("Failed to create datalog");
+    let datalog = DataLog::create(config).expect("Failed to create datalog");
     datalog.as_daemon()
 }
 
@@ -67,11 +67,15 @@ pub async fn start_datalog_entry(
 }
 
 pub async fn end_datalog_entry(name: &str) -> Result<(), EnokiError> {
-    DATALOG.lock().await.borrow_sender().finish_entry(String::from(name))?;
+    DATALOG
+        .lock()
+        .await
+        .borrow_sender()
+        .finish_entry(String::from(name))?;
     Ok(())
 }
 
-pub async fn log_datalog_value(name: &str, value: MushroomValue) -> Result<(), EnokiError> {
+pub async fn log_datalog_value(name: &str, value: EnokiValue) -> Result<(), EnokiError> {
     DATALOG
         .lock()
         .await

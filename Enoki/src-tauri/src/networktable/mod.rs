@@ -2,6 +2,7 @@
 #[macro_use]
 pub mod tauri_cmds;
 pub mod handler;
+// pub mod python_funcs;
 
 use std::{collections::HashMap, sync::Arc};
 
@@ -23,19 +24,19 @@ pub fn networktable_plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R>
             does_network_table_client_exist,
             stop_network_table_client,
             subscribe_to_topic,
-            set_boolean_topic,
-            set_float_topic,
-            set_double_topic,
-            set_string_topic,
-            set_int_topic,
-            set_boolean_array_topic,
-            set_float_array_topic,
-            set_double_array_topic,
-            set_string_array_topic,
-            set_int_array_topic,
-            get_subbed_entries_values,
-            get_subbed_entry_value,
-            get_client_timestamp
+            // set_boolean_topic,
+            // set_float_topic,
+            // set_double_topic,
+            // set_string_topic,
+            // set_int_topic,
+            // set_boolean_array_topic,
+            // set_float_array_topic,
+            // set_double_array_topic,
+            // set_string_array_topic,
+            // set_int_array_topic,
+            // get_subbed_entries_values,
+            // get_subbed_entry_value,
+            // get_client_timestamp
         ])
         .build()
 }

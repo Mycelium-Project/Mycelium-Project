@@ -62,3 +62,19 @@ export function TraceError(message: any, ...optionalParams: any[]): void {
             file: callerFile});
     }
 }
+
+/**
+ * A tracing substitute for console.error. This will log the error to the native tracing pipeline.
+ * @param data The data to be logged. This will be converted to a string.
+ */
+export function ErrorHook(data: any[]): void {
+    let stack = new Error().stack ?? "";
+    let caller = stack.split("\n")[2];
+    let callerParts = caller.split(" ");
+    let inter = callerParts[callerParts.length - 1].split("/").pop();
+    let callerFile = inter?.split(":")[0];
+    let callerLine = inter?.split(":")[1].split(")")[0];
+    invoke("plugin:native|tracing_frontend", { level: "error", msg: data.map((p) => p.toString()).join(" "),
+        line: callerLine,
+        file: callerFile});
+}

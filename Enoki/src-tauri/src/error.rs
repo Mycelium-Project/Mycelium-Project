@@ -5,15 +5,18 @@ use thiserror::Error;
 #[derive(Error, Debug, Serialize)]
 pub enum EnokiError {
     #[error("DataLog io error: {0:?}")]
-    DlIo(String),
+    DatalogIo(String),
     #[error("DataLog error: {0:?}")]
-    Dl(#[from] wpilog::DatalogError),
+    Datalog(#[from] wpilog::DatalogError),
     #[error("NT error: {0:?}")]
     NTTimeout(#[from] network_tables::NetworkTablesError),
-    #[error("Not main thread: {0:?}")]
-    NotMainThread(String),
     #[error("No valid address found")]
+    //used specifically for pinging ssh clients
     NoValidAddress,
+    #[error("NT Topic not found")]
+    NTTopicNotFound,
+    #[error("DL Entry not found")]
+    DLEntryNotFound,
 }
 
 #[inline(always)]

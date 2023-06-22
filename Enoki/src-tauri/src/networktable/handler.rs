@@ -8,13 +8,14 @@ use single_value_channel::{
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::hash::Hash;
-use std::net::{Ipv4Addr, SocketAddrV4, IpAddr};
+use std::net::{IpAddr, Ipv4Addr, SocketAddrV4};
 use std::time::Duration;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::task::JoinHandle as TokioJoinHandle;
 
-use crate::error::EnokiError;
-use crate::mushroom_types::{MushroomEntry, MushroomTable};
+use crate::datalog::DATALOG;
+use crate::enoki_types::{now, EnokiField, EnokiObject, TimestampedEnokiValue};
+use crate::error::{EnokiError, log_result_consume};
 use crate::NETWORK_CLIENT_MAP;
 
 pub async fn get_connect_client_names() -> Vec<String> {
@@ -27,9 +28,9 @@ pub async fn get_connect_client_names() -> Vec<String> {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Hash, PartialEq, Eq, Clone)]
 pub struct NetworkTableClientId {
-    ip: [u8; 4],
-    port: u16,
-    identity: String,
+    pub(super) ip: [u8; 4],
+    pub(super) port: u16,
+    pub(super) identity: String,
 }
 impl NetworkTableClientId {
     pub fn new(ip: Ipv4Addr, port: u16, identity: String) -> Self {
@@ -60,16 +61,16 @@ impl Display for NetworkTableClientId {
 pub struct NetworkTableClient {
     id: NetworkTableClientId,
     subscriptions: Sender<Vec<SubscriptionPackage>>,
-    input: Sender<MushroomTable>,
-    output: SingleReceiver<MushroomTable>,
+    input: Sender<EnokiObject>,
+    output: SingleReceiver<HashMap<String, EnokiObject>>,
     thread: TokioJoinHandle<()>,
 }
 impl NetworkTableClient {
     fn new(
         id: NetworkTableClientId,
         subscriptions: Sender<Vec<SubscriptionPackage>>,
-        input: Sender<MushroomTable>,
-        output: SingleReceiver<MushroomTable>,
+        input: Sender<EnokiObject>,
+        output: SingleReceiver<HashMap<String, EnokiObject>>,
         thread: TokioJoinHandle<()>,
     ) -> Self {
         Self {
@@ -86,7 +87,7 @@ impl NetworkTableClient {
         self.thread.abort();
     }
 
-    pub fn publish(&mut self, table: MushroomTable) {
+    pub fn publish(&mut self, table: EnokiObject) {
         tracing::info!("Publishing table to network table client {}", self.id);
         self.input.try_send(table).unwrap_or_else(|err| {
             tracing::error!(
@@ -107,27 +108,54 @@ impl NetworkTableClient {
         });
     }
 
-    pub fn poll(&mut self) -> MushroomTable {
-        self.output.latest().clone()
+    pub fn poll(&mut self, topic: String) -> Result<EnokiObject, EnokiError> {
+        // self.output.latest().get()
+        Err(EnokiError::NTTopicNotFound)
     }
 }
 
 #[derive(Debug)]
 pub struct SubscriptionPackage {
-    name: String,
+    topic: String,
+    unsubscribe: bool,
     options: Option<SubscriptionOptions>,
 }
 impl Hash for SubscriptionPackage {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.name.hash(state);
+        self.topic.hash(state);
     }
 }
 impl SubscriptionPackage {
     pub fn new(name: String, options: SubscriptionOptions) -> Self {
         Self {
-            name,
+            topic: name,
+            unsubscribe: false,
             options: Some(options),
         }
+    }
+
+    pub fn unsub(name: String) -> Self {
+        Self {
+            topic: name,
+            unsubscribe: true,
+            options: None,
+        }
+    }
+}
+
+pub fn datalog_type(nt_type: &Type) -> String {
+    match nt_type.to_owned() {
+        Type::Boolean => "boolean".to_string(),
+        Type::Double => "double".to_string(),
+        Type::String => "string".to_string(),
+        Type::Float => "float".to_string(),
+        Type::Int => "int64".to_string(),
+        Type::BooleanArray => "boolean[]".to_string(),
+        Type::DoubleArray => "double[]".to_string(),
+        Type::StringArray => "string[]".to_string(),
+        Type::FloatArray => "float[]".to_string(),
+        Type::IntArray => "int64[]".to_string(),
+        _ => "raw".to_string(),
     }
 }
 
@@ -136,9 +164,8 @@ pub fn start_nt4_client(
     port: u16,
     identity: String,
 ) -> Result<NetworkTableClient, EnokiError> {
-
-    let (snd_pub, rec_pub) = channel::<MushroomTable>(255);
-    let (rec_sub, snd_sub) = single_channel(MushroomTable::new(0));
+    let (snd_pub, rec_pub) = channel::<EnokiObject>(255);
+    let (rec_sub, snd_sub) = single_channel(HashMap::new());
     let (subscription_sender, subscription_receiver) = channel::<Vec<SubscriptionPackage>>(255);
     let id = NetworkTableClientId {
         ip: address.octets(),
@@ -163,131 +190,162 @@ fn nt4(
     port: u16,
     identity: String,
     mut subscriptions: Receiver<Vec<SubscriptionPackage>>,
-    mut input: Receiver<MushroomTable>,
-    output: SingleUpdater<MushroomTable>,
+    mut input: Receiver<EnokiObject>,
+    output: SingleUpdater<HashMap<String, EnokiObject>>,
 ) -> TokioJoinHandle<()> {
     tokio::task::Builder::new()
         .name(format!("NT4-{}", identity).as_str())
         .spawn(async move {
-        let mut subs: HashMap<String, Subscription> = HashMap::new();
-        let mut pubs: HashMap<String, PublishedTopic> = HashMap::new();
+            let mut subs: HashMap<String, Subscription> = HashMap::new();
+            let mut pubs: HashMap<String, PublishedTopic> = HashMap::new();
 
-        let client = Client::try_new_w_config(
-            SocketAddrV4::new(address, port),
-            Config {
-                connect_timeout: 30000,
-                disconnect_retry_interval: 10000,
-                should_reconnect: Box::new(default_should_reconnect),
-                on_announce: Box::new(|_| {
-                    Box::pin(async {
-                        tracing::info!("Announced");
-                    })
-                }),
-                on_un_announce: Box::new(|_| {
-                    Box::pin(async {
-                        tracing::info!("Un-announced");
-                    })
-                }),
-                on_disconnect: Box::new(|| {
-                    Box::pin(async {
-                        tracing::info!("Disconnected");
-                    })
-                }),
-                on_reconnect: Box::new(|| {
-                    Box::pin(async {
-                        tracing::info!("Reconnected");
-                    })
-                }),
-            },
-            identity,
-        )
-        .await
-        .unwrap_or_else(|err| {
-            tracing::error!("Failed to connect to {}:{} because {}", address, port, err);
-            panic!();
-        });
-
-        let mut table = MushroomTable::new(client.real_server_time());
-
-        loop {
-            let start_time = std::time::Instant::now();
-
-            let new_sub_data = subscriptions.try_recv();
-            if let Ok(new_sub_data) = new_sub_data {
-                for sub_data in new_sub_data {
-                    let name = sub_data.name.clone();
-                    let options = sub_data.options.clone();
-                    if subs.contains_key(&name) {
-                        client.unsubscribe(subs.remove(&name).unwrap()).await.ok();
-                    }
-                    let sub = client
-                        .subscribe_w_options(&[name.clone()], options)
-                        .await
-                        .unwrap_or_else(|err| {
-                            tracing::error!("Failed to subscribe to {}:{}", address, port);
-                            tracing::error!("Error: {}", err);
-                            panic!();
-                        });
-                    subs.insert(name.clone(), sub);
-                    tracing::info!("Subscribed to {}:{}:{}", address, port, name);
-                }
-            }
-
-            let new_pub_data = input.try_recv();
-            if let Ok(table) = new_pub_data {
-                for entry in table.get_entries() {
-                    let path = String::from(entry.get_path());
-                    if !pubs.contains_key(&path) {
-                        let topic = client
-                            .publish_topic(path.as_str(), Type::from(entry.get_value()), None)
-                            .await
-                            .unwrap();
-                        pubs.insert(path.clone(), topic);
-                    }
-                    let topic = pubs.get(&path).unwrap();
-                    client
-                        .publish_value(topic, &rmpv::Value::from(entry.get_value()))
-                        .await
-                        .ok();
-                    tracing::info!("Published to {}:{}:{}", address, port, path);
-                }
-            }
-
-            //use client timestamp
-            let mut new_table_data: MushroomTable =
-                MushroomTable::new(client.real_server_time());
-            for sub in subs.values_mut() {
-                while let Ok(msg) = sub.try_next().await {
-                    let entry = MushroomEntry::new(
-                        msg.data.into(),
-                        msg.topic_name.into(),
-                        Some(client.to_real_time(msg.timestamp) as f64),
-                    );
-                    new_table_data.add_entry(entry);
-                }
-            }
-            table.update_all(&new_table_data);
-            output.update(table.clone()).unwrap_or_else(|err| {
-                tracing::error!(
-                    "Failed to send to network table client {}:{}",
-                    address,
-                    port
-                );
-                tracing::error!("Error: {}", err);
+            let client = Client::try_new_w_config(
+                SocketAddrV4::new(address, port),
+                Config {
+                    connect_timeout: 30000,
+                    disconnect_retry_interval: 10000,
+                    should_reconnect: Box::new(default_should_reconnect),
+                    on_announce: Box::new(|topic| {
+                        Box::pin(async {
+                            log_result_consume(DATALOG.lock().await.borrow_sender().start_entry(
+                                topic.name.clone(),
+                                datalog_type(&topic.r#type),
+                                Some("{ source: \"Enoki Network Table Client\"}".to_string()),
+                            ));
+                            tracing::info!("Announced {}", topic.name);
+                        })
+                    }),
+                    on_un_announce: Box::new(|opt_topic| {
+                        Box::pin(async {
+                            if let Some(topic) = opt_topic {
+                                log_result_consume(DATALOG
+                                    .lock()
+                                    .await
+                                    .borrow_sender()
+                                    .finish_entry(topic.name.clone()));
+                                tracing::info!("Un-announced {}", topic.name);
+                            } else {
+                                tracing::info!("Un-announced unknown");
+                            }
+                        })
+                    }),
+                    on_disconnect: Box::new(|| {
+                        Box::pin(async {
+                            tracing::info!("Disconnected");
+                        })
+                    }),
+                    on_reconnect: Box::new(|| {
+                        Box::pin(async {
+                            tracing::info!("Reconnected");
+                        })
+                    }),
+                },
+                identity,
+            )
+            .await
+            .unwrap_or_else(|err| {
+                tracing::error!("Failed to connect to {}:{} because {}", address, port, err);
+                panic!();
             });
 
-            let elapsed = start_time.elapsed();
-            tokio::time::sleep(Duration::from_secs_f64(
-                (Duration::from_millis(15) - elapsed)
-                    .as_secs_f64()
-                    .clamp(0.0, 0.015),
-            ))
-            .await;
-        }
-    }).unwrap()
+            let mut datalog_sender = DATALOG.lock().await.get_sender();
+
+            let mut table = HashMap::new();
+
+            loop {
+                let start_time = std::time::Instant::now();
+
+                let new_sub_data = subscriptions.try_recv();
+                if let Ok(new_sub_data) = new_sub_data {
+                    for sub_data in new_sub_data {
+                        let topic = sub_data.topic.clone();
+                        let options = sub_data.options.clone();
+                        if subs.contains_key(&topic) {
+                            client.unsubscribe(subs.remove(&topic).unwrap()).await.ok();
+                        }
+                        if !sub_data.unsubscribe {
+                            let sub = client
+                                .subscribe_w_options(&[topic.clone()], options)
+                                .await
+                                .unwrap_or_else(|err| {
+                                    tracing::error!("Failed to subscribe to {}:{}", address, port);
+                                    tracing::error!("Error: {}", err);
+                                    panic!();
+                                });
+                            tracing::info!("Subscribed to {}:{}:{}", address, port, &topic);
+                            table.insert(topic.clone(), EnokiObject::new(now()));
+                            subs.insert(topic, sub);
+                        } else {
+                            tracing::info!("Unsubscribed from {}:{}:{}", address, port, &topic);
+                        }
+                    }
+                }
+
+                let new_pub_data = input.try_recv();
+                if let Ok(table) = new_pub_data {
+                    for entry in table.get_fields() {
+                        let path = String::from(entry.get_key());
+                        if !pubs.contains_key(&path) {
+                            let topic = client
+                                .publish_topic(
+                                    path.as_str(),
+                                    Type::from(&entry.get_value().value),
+                                    None,
+                                )
+                                .await
+                                .unwrap();
+                            pubs.insert(path.clone(), topic);
+                        }
+                        let topic = pubs.get(&path).unwrap();
+                        client
+                            .publish_value(topic, &rmpv::Value::from(&entry.get_value().value))
+                            .await
+                            .ok();
+                        tracing::info!("Published to {}:{}:{}", address, port, path);
+                    }
+                }
+
+                //use client timestamp
+                for (topic, sub) in subs.iter_mut() {
+                    let mut new_obj_data: EnokiObject = EnokiObject::new(client.real_server_time());
+                    while let Ok(msg) = sub.try_next().await {
+                        let field = EnokiField::new(
+                            msg.topic_name.into(),
+                            TimestampedEnokiValue::new(
+                                client.to_real_time(msg.timestamp as u64),
+                                msg.data.into(),
+                            ),
+                        );
+                        new_obj_data.add_field(field);
+                    }
+                    if let Some(object) = table.get_mut(topic) {
+                        object.update_all(&new_obj_data)
+                    }
+                }
+                output.update(table.clone()).unwrap_or_else(|err| {
+                    tracing::error!(
+                        "Failed to send to network table client {}:{}",
+                        address,
+                        port
+                    );
+                    tracing::error!("Error: {}", err);
+                });
+
+                let elapsed = start_time.elapsed();
+                tokio::time::sleep(Duration::from_secs_f64(
+                    (Duration::from_millis(15) - elapsed)
+                        .as_secs_f64()
+                        .clamp(0.0, 0.015),
+                ))
+                .await;
+            }
+        })
+        .unwrap()
 }
 
-pub async fn ping_addresses(addresses: HashMap<String, Ipv4Addr>) -> Result<HashMap<String, bool>, EnokiError> {
+pub async fn ping_addresses(
+    addresses: HashMap<String, Ipv4Addr>,
+) -> Result<HashMap<String, bool>, EnokiError> {
     let mut results: HashMap<String, bool> = HashMap::new();
     for (name, address) in addresses {
         if let Ok(()) = ping::ping(IpAddr::V4(address), None, None, None, None, None) {
