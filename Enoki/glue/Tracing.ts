@@ -1,7 +1,4 @@
-
-
 import { invoke } from "@tauri-apps/api/tauri";
-
 
 export function TraceInfo(message: any, ...optionalParams: any[]): void {
     //get the line number of the caller and the file
