@@ -8,7 +8,7 @@ use single_value_channel::{
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::hash::Hash;
-use std::net::{Ipv4Addr, SocketAddrV4};
+use std::net::{Ipv4Addr, SocketAddrV4, IpAddr};
 use std::time::Duration;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::task::JoinHandle as TokioJoinHandle;
@@ -285,4 +285,16 @@ fn nt4(
             .await;
         }
     }).unwrap()
+}
+
+pub async fn ping_addresses(addresses: HashMap<String, Ipv4Addr>) -> Result<HashMap<String, bool>, EnokiError> {
+    let mut results: HashMap<String, bool> = HashMap::new();
+    for (name, address) in addresses {
+        if let Ok(()) = ping::ping(IpAddr::V4(address), None, None, None, None, None) {
+            results.insert(name, true);
+        } else {
+            results.insert(name, false);
+        }
+    }
+    Ok(results)
 }

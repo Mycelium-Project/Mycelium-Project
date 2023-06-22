@@ -8,9 +8,6 @@ import {
   StartNetworkTableClient,
   TableEntry,
 } from "@/utilities/NetworkTableV4";
-import { invoke } from "@tauri-apps/api/tauri";
-import { window } from "@tauri-apps/api";
-import { TauriEvent } from "@tauri-apps/api/event";
 import NetworkTable from "@/app/components/network_table";
 import { TraceWarn } from "@/utilities/Tracing";
 import { LargeButton } from "@/app/components/buttons";
@@ -19,14 +16,6 @@ import {
   CoprocessorFullCard,
   CoprocessorUsageCard,
 } from "@/app/components/coprocessors";
-
-window
-  .getCurrent()
-  .listen(TauriEvent.WINDOW_CLOSE_REQUESTED, (): boolean => {
-    invoke("close").then();
-    return true;
-  })
-  .then();
 
 export default function Home(): JSX.Element {
   return (
@@ -135,7 +124,6 @@ let testTable: NetworkTableClientId;
 
 async function StartNTClient(): Promise<void> {
   console.log("Starting NetworkTables");
-  TraceWarn("TEST");
   testTable = await StartNetworkTableClient([127, 0, 0, 1], 5810, "Enoki-test");
 }
 

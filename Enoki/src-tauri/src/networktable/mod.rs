@@ -1,11 +1,11 @@
 
 #[macro_use]
-pub mod commands;
+pub mod tauri_cmds;
 pub mod handler;
 
 use std::{collections::HashMap, sync::Arc};
 
-use commands::*;
+use tauri_cmds::*;
 use once_cell::sync::Lazy;
 use tokio::sync::Mutex;
 

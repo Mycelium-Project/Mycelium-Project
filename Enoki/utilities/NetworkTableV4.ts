@@ -1,6 +1,7 @@
 "use client";
 
 import { invoke } from "@tauri-apps/api/tauri";
+import { TraceWarn } from "./Tracing";
 
 //create a global union for network table types
 type NetworkTableTypes =

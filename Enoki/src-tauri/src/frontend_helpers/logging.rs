@@ -13,22 +13,20 @@ thread_local! {
 #[tauri::command]
 pub async fn tracing_frontend(level: String, msg: String, line: String, file: String) {
     if cfg!(debug_assertions) {
-        std::thread::spawn(move || {
-                DISPATCH.with(|dispatch| {
-                    dispatcher::with_default(&dispatch,
-                        move || {
-                            match level.as_str() {
-                                "trace" => tracing::trace!(message = msg, line = line, file = file),
-                                "debug" => tracing::debug!(message = msg, line = line, file = file),
-                                "info" => tracing::info!(message = msg, line = line, file = file),
-                                "warn" => tracing::warn!(message = msg, line = line, file = file),
-                                "error" => tracing::error!(message = msg, line = line, file = file),
-                                _ => tracing::error!("Invalid log level: {}", level),
-                            }
-                        }
-                    )
-                });
-            });
+        DISPATCH.with(|dispatch| {
+            dispatcher::with_default(&dispatch,
+                move || {
+                    match level.as_str() {
+                        "trace" => tracing::trace!(message = msg, line = line, file = file),
+                        "debug" => tracing::debug!(message = msg, line = line, file = file),
+                        "info" => tracing::info!(message = msg, line = line, file = file),
+                        "warn" => tracing::warn!(message = msg, line = line, file = file),
+                        "error" => tracing::error!(message = msg, line = line, file = file),
+                        _ => tracing::error!("Invalid log level: {}", level),
+                    }
+                }
+            )
+        });
     } else {
         std::thread::Builder::new()
             .name("frontend".to_string())
