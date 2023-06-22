@@ -9,3 +9,8 @@ updates:
     directory: "./Enoki/src-tauri"
     schedule:
       interval: "daily"
+
+  - package-ecosystem: "cargo"
+    directory: "./Shiitake/shiitake_lib"
+    schedule:
+      interval: "daily"
