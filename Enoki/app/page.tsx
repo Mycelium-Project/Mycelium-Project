@@ -14,6 +14,11 @@ import { TauriEvent } from "@tauri-apps/api/event";
 import NetworkTable from "@/app/components/network_table";
 import { TraceWarn } from "@/utilities/Tracing";
 import { LargeButton } from "@/app/components/buttons";
+import {
+  CoprocessorPurposeCard,
+  CoprocessorFullCard,
+  CoprocessorUsageCard,
+} from "@/app/components/coprocessors";
 
 window
   .getCurrent()
@@ -28,7 +33,7 @@ export default function Home(): JSX.Element {
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
       <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
         <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by opening&nbsp;
+          Welcome to Enoki! To get started, check out&nbsp;
           <code className="font-mono font-bold">docs/developing.md</code>
         </p>
       </div>
@@ -45,6 +50,38 @@ export default function Home(): JSX.Element {
       </div>
 
       <NetworkTable />
+      <br />
+
+      <div className="mb-32 grid text-center lg:mb-0 lg:grid-cols-3 lg:text-left">
+        <CoprocessorPurposeCard
+          name="Purpose Card"
+          port="22"
+          ip="10.99.99.43"
+          purpose="Photon Vision"
+          note={
+            "Demo test note as an optional field, this is the small white coprocessor."
+          }
+        />
+
+        <CoprocessorUsageCard
+          name="Usage Card"
+          cpu="26.7"
+          ram="564.6"
+          network="0.3"
+          note={"These will be live updating cards."}
+        />
+
+        <CoprocessorFullCard
+          name="Full Card"
+          port="22"
+          ip="10.99.99.43"
+          purpose="Photon Vision"
+          cpu="26.7"
+          ram="564.6"
+          network="0.3"
+          note={"Hello there, General Kenobi."}
+        />
+      </div>
 
       <div className="mb-32 grid text-center lg:mb-0 lg:grid-cols-3 lg:text-left">
         <LargeButton

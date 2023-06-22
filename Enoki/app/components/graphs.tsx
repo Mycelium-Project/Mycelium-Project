@@ -9,6 +9,7 @@ export function LineGraph(
 ): JSX.Element {
   return (
     <Line
+      className={"even:bg-blue-gray-50/50"}
       data={data}
       width={width}
       height={height}
@@ -24,6 +25,7 @@ export function BarGraph(
 ): JSX.Element {
   return (
     <Bar
+      className={"even:bg-blue-gray-50/50"}
       data={data}
       width={width}
       height={height}
@@ -39,6 +41,7 @@ export function PieChart(
 ): JSX.Element {
   return (
     <Pie
+      className={"even:bg-blue-gray-50/50"}
       data={data}
       width={width}
       height={height}
@@ -54,6 +57,7 @@ export function ScatterChart(
 ): JSX.Element {
   return (
     <Scatter
+      className={"even:bg-blue-gray-50/50"}
       data={data}
       width={width}
       height={height}
@@ -69,6 +73,7 @@ export function BubbleChart(
 ): JSX.Element {
   return (
     <Bubble
+      className={"even:bg-blue-gray-50/50"}
       data={data}
       width={width}
       height={height}
