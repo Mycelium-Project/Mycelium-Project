@@ -41,7 +41,7 @@ export function CoprocessorFullCard(props: any): JSX.Element {
     <Card className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30">
       <h2 className={`mb-3 text-2xl font-semibold`}>{props.name + " "}</h2>
       <div className="grid text-center lg:mb-0 lg:grid-cols-2 lg:text-left">
-        <div>
+        <div className="pr-2">
           <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
             {"Address: " + props.ip + ":" + props.port}
           </p>
@@ -50,7 +50,7 @@ export function CoprocessorFullCard(props: any): JSX.Element {
           </p>
           <br />
         </div>
-        <div>
+        <div className="pl-2">
           <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
             {"CPU: " + props.cpu + "%"}
           </p>
@@ -63,7 +63,7 @@ export function CoprocessorFullCard(props: any): JSX.Element {
           <br />
         </div>
       </div>
-      <p className={`m-0 max-w-[50ch] text-sm opacity-50`}>{props.note}</p>
+      <p className={`m-0 max-w-[65ch] text-sm opacity-50`}>{props.note}</p>
     </Card>
   );
 }
