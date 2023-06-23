@@ -1,7 +1,6 @@
 
 import { invoke } from "@tauri-apps/api/tauri";
-import { ErrorHook } from "./Tracing";
-import { EnokiValue, TimestampedEnokiValue } from "./EnokiTypes";
+import { EnokiObject, EnokiValue, TimestampedEnokiValue } from "./EnokiTypes";
 
 export class NetworkTableClientId {
     ip: number[];
@@ -49,25 +48,33 @@ export class NetworkTablePubbedTopic<T extends EnokiValue> {
     }
 }
 
-export class NetworkTableSubSnapshot {
-    timestamp: number;
-    data: Record<string, TimestampedEnokiValue<EnokiValue>>;
+export class NetworkTableSubscription {
+    clientId: NetworkTableClientId;
+    topic: string;
+    cached_history: EnokiObject;
 
-    constructor(timestamp: number, data: Record<string, TimestampedEnokiValue<EnokiValue>>) {
-        this.timestamp = timestamp;
-        this.data = data;
+    constructor(clientId: NetworkTableClientId, topic: string) {
+        this.clientId = clientId;
+        this.topic = topic;
+        this.cached_history = new EnokiObject();
     }
 
-    public getTimestamp(): number {
-        return this.timestamp;
+    public async getSubbedData(): Promise<EnokiObject> {
+        return invoke("plugin:nt|get_subbed_data", {clientId: this.clientId, topic: this.topic});
     }
 
-    public getData(): Record<string, TimestampedEnokiValue<EnokiValue>> {
-        return this.data;
+    public async getSubbedDataWithHistory(): Promise<EnokiObject> {
+        let data = await invoke<EnokiObject>(
+            "plugin:nt|get_subbed_data_with_history",
+            {clientId: this.clientId, topic: this.topic, after: this.cached_history.timestamp});
+        data.mergeHistory(this.cached_history);
+        this.cached_history = data;
+        this.cached_history.fields = [];
+        return data;
     }
 
-    public getSpecificValue<T extends EnokiValue>(topic: string): TimestampedEnokiValue<T> {
-        return this.data[topic] as TimestampedEnokiValue<T>;
+    public clearCache(): void {
+        this.cached_history = new EnokiObject();
     }
 }
 
@@ -79,11 +86,13 @@ export async function start_network_table_client(ip: number[], port: number, ide
 
 export class NetworkTableClient {
     topicMap: Map<string, NetworkTablePubbedTopic<any>>;
+    subMap: Map<string, NetworkTableSubscription>;
     clientId: NetworkTableClientId;
 
     constructor(clientId: NetworkTableClientId) {
         this.clientId = clientId;
         this.topicMap = new Map();
+        this.subMap = new Map();
     }
 
     public createBoolTopic(topic: string): NetworkTablePubbedTopic<boolean> {
@@ -213,7 +222,7 @@ export class NetworkTableClient {
             periodic,
             all,
             prefix,
-        }).catch(ErrorHook);
+        });
     }
 
     /**
@@ -224,7 +233,7 @@ export class NetworkTableClient {
         invoke("plugin:nt|unsubscribe_from_topic", {
             clientId: this.clientId,
             topic,
-        }).catch(ErrorHook);
+        });
     }
 
     public stop(): void {

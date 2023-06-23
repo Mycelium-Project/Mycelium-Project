@@ -14,7 +14,7 @@ use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::task::JoinHandle as TokioJoinHandle;
 
 use crate::datalog::DATALOG;
-use crate::enoki_types::{now, EnokiField, EnokiObject, TimestampedEnokiValue};
+use crate::enoki_types::{now, EnokiField, EnokiObject, TimestampedEnokiValue, EnokiKey, EnokiTimeStamp};
 use crate::error::{EnokiError, log_result_consume};
 use crate::NETWORK_CLIENT_MAP;
 
@@ -60,7 +60,7 @@ impl Display for NetworkTableClientId {
 #[derive(Debug)]
 pub struct NetworkTableClient {
     id: NetworkTableClientId,
-    subscriptions: Sender<Vec<SubscriptionPackage>>,
+    subscriptions: Sender<SubscriptionPackage>,
     input: Sender<EnokiObject>,
     output: SingleReceiver<HashMap<String, EnokiObject>>,
     thread: TokioJoinHandle<()>,
@@ -68,7 +68,7 @@ pub struct NetworkTableClient {
 impl NetworkTableClient {
     fn new(
         id: NetworkTableClientId,
-        subscriptions: Sender<Vec<SubscriptionPackage>>,
+        subscriptions: Sender<SubscriptionPackage>,
         input: Sender<EnokiObject>,
         output: SingleReceiver<HashMap<String, EnokiObject>>,
         thread: TokioJoinHandle<()>,
@@ -87,9 +87,9 @@ impl NetworkTableClient {
         self.thread.abort();
     }
 
-    pub fn publish(&mut self, table: EnokiObject) {
+    pub fn publish_obj(&mut self, obj: EnokiObject) {
         tracing::info!("Publishing table to network table client {}", self.id);
-        self.input.try_send(table).unwrap_or_else(|err| {
+        self.input.try_send(obj).unwrap_or_else(|err| {
             tracing::error!(
                 "Failed to publish to network table client {} because {}",
                 self.id,
@@ -98,7 +98,18 @@ impl NetworkTableClient {
         });
     }
 
-    pub fn subscribe(&mut self, sub_data: Vec<SubscriptionPackage>) {
+    pub fn publish_field(&mut self, field: EnokiField) {
+        tracing::info!("Publishing field to network table client {}", self.id);
+        self.input.try_send(EnokiObject::from_field(field)).unwrap_or_else(|err| {
+            tracing::error!(
+                "Failed to publish to network table client {} because {}",
+                self.id,
+                err
+            );
+        });
+    }
+
+    pub fn subscribe(&mut self, sub_data: SubscriptionPackage) {
         self.subscriptions.try_send(sub_data).unwrap_or_else(|err| {
             tracing::error!(
                 "Failed to subscrive to network table client {} because {}",
@@ -108,9 +119,28 @@ impl NetworkTableClient {
         });
     }
 
+    pub fn unsubscribe(&mut self, topic: String) {
+        self.subscriptions
+            .try_send(SubscriptionPackage::unsub(topic))
+            .unwrap_or_else(|err| {
+                tracing::error!(
+                    "Failed to unsubscribe to network table client {} because {}",
+                    self.id,
+                    err
+                );
+            });
+    }
+
     pub fn poll(&mut self, topic: String) -> Result<EnokiObject, EnokiError> {
-        // self.output.latest().get()
-        Err(EnokiError::NTTopicNotFound)
+        if let Some(sub_obj) = self.output.latest().get(&topic) {
+            Ok(sub_obj.clone())
+        } else {
+            Err(EnokiError::NTTopicNotFound(topic))
+        }
+    }
+
+    pub fn poll_all(&mut self) -> Vec<EnokiObject> {
+        self.output.latest().clone().values().cloned().collect()
     }
 }
 
@@ -159,6 +189,31 @@ pub fn datalog_type(nt_type: &Type) -> String {
     }
 }
 
+pub async fn populate_history(obj: EnokiObject, identity: String, after: EnokiTimeStamp, before: EnokiTimeStamp) -> EnokiObject {
+    let mut obj = obj;
+    let entries = DATALOG.lock().await.get_all_entries();
+    let entry_map: HashMap<String, &wpilog::log::DatalogEntryResponse> = 
+        HashMap::from_iter(entries.iter().map(|entry| (entry.name.clone(), entry)));
+    let mut vec_of_vec = Vec::new();
+    for field in obj.get_fields() {
+        let key = field.get_key().clone().prefix(identity.clone());
+        if let Some(entry) = entry_map.get(&String::from(key.clone())) {
+            let mut tv_vec = Vec::new();
+            entry.marks.iter().for_each(|mark| {
+                if mark.timestamp > after && mark.timestamp < before {
+                    tv_vec.push(TimestampedEnokiValue::new(mark.timestamp, mark.value.clone().into()));
+                }
+            });
+            vec_of_vec.push((key, tv_vec));
+        }
+    }
+    for (key, vec) in vec_of_vec {
+        obj.set_history(&key, vec);
+    }
+    obj
+}
+
+
 pub fn start_nt4_client(
     address: Ipv4Addr,
     port: u16,
@@ -166,7 +221,7 @@ pub fn start_nt4_client(
 ) -> Result<NetworkTableClient, EnokiError> {
     let (snd_pub, rec_pub) = channel::<EnokiObject>(255);
     let (rec_sub, snd_sub) = single_channel(HashMap::new());
-    let (subscription_sender, subscription_receiver) = channel::<Vec<SubscriptionPackage>>(255);
+    let (subscription_sender, subscription_receiver) = channel::<SubscriptionPackage>(255);
     let id = NetworkTableClientId {
         ip: address.octets(),
         port,
@@ -189,7 +244,7 @@ fn nt4(
     address: Ipv4Addr,
     port: u16,
     identity: String,
-    mut subscriptions: Receiver<Vec<SubscriptionPackage>>,
+    mut subscriptions: Receiver<SubscriptionPackage>,
     mut input: Receiver<EnokiObject>,
     output: SingleUpdater<HashMap<String, EnokiObject>>,
 ) -> TokioJoinHandle<()> {
@@ -240,7 +295,7 @@ fn nt4(
                         })
                     }),
                 },
-                identity,
+                identity.clone(),
             )
             .await
             .unwrap_or_else(|err| {
@@ -248,7 +303,7 @@ fn nt4(
                 panic!();
             });
 
-            let mut datalog_sender = DATALOG.lock().await.get_sender();
+            let datalog_sender = DATALOG.lock().await.get_sender();
 
             let mut table = HashMap::new();
 
@@ -256,28 +311,26 @@ fn nt4(
                 let start_time = std::time::Instant::now();
 
                 let new_sub_data = subscriptions.try_recv();
-                if let Ok(new_sub_data) = new_sub_data {
-                    for sub_data in new_sub_data {
-                        let topic = sub_data.topic.clone();
-                        let options = sub_data.options.clone();
-                        if subs.contains_key(&topic) {
-                            client.unsubscribe(subs.remove(&topic).unwrap()).await.ok();
-                        }
-                        if !sub_data.unsubscribe {
-                            let sub = client
-                                .subscribe_w_options(&[topic.clone()], options)
-                                .await
-                                .unwrap_or_else(|err| {
-                                    tracing::error!("Failed to subscribe to {}:{}", address, port);
-                                    tracing::error!("Error: {}", err);
-                                    panic!();
-                                });
-                            tracing::info!("Subscribed to {}:{}:{}", address, port, &topic);
-                            table.insert(topic.clone(), EnokiObject::new(now()));
-                            subs.insert(topic, sub);
-                        } else {
-                            tracing::info!("Unsubscribed from {}:{}:{}", address, port, &topic);
-                        }
+                if let Ok(sub_data) = new_sub_data {
+                    let topic = sub_data.topic.clone();
+                    let options = sub_data.options.clone();
+                    if subs.contains_key(&topic) {
+                        client.unsubscribe(subs.remove(&topic).unwrap()).await.ok();
+                    }
+                    if !sub_data.unsubscribe {
+                        let sub = client
+                            .subscribe_w_options(&[topic.clone()], options)
+                            .await
+                            .unwrap_or_else(|err| {
+                                tracing::error!("Failed to subscribe to {}:{}", address, port);
+                                tracing::error!("Error: {}", err);
+                                panic!();
+                            });
+                        tracing::info!("Subscribed to {}:{}:{}", address, port, &topic);
+                        table.insert(topic.clone(), EnokiObject::new(now()));
+                        subs.insert(topic, sub);
+                    } else {
+                        tracing::info!("Unsubscribed from {}:{}:{}", address, port, &topic);
                     }
                 }
 
@@ -305,18 +358,21 @@ fn nt4(
                     }
                 }
 
-                //use client timestamp
                 for (topic, sub) in subs.iter_mut() {
                     let mut new_obj_data: EnokiObject = EnokiObject::new(client.real_server_time());
                     while let Ok(msg) = sub.try_next().await {
                         let field = EnokiField::new(
-                            msg.topic_name.into(),
+                            msg.topic_name.clone().into(),
                             TimestampedEnokiValue::new(
                                 client.to_real_time(msg.timestamp as u64),
                                 msg.data.into(),
                             ),
                         );
-                        new_obj_data.add_field(field);
+                        new_obj_data.add_field(field.clone());
+                        log_result_consume(datalog_sender.append_to_entry_with_timestamp(
+                            EnokiKey::from(msg.topic_name).prefix(identity.clone()).into(),
+                            field.get_value_owned().value.into(),
+                            field.get_value().timestamp));
                     }
                     if let Some(object) = table.get_mut(topic) {
                         object.update_all(&new_obj_data)

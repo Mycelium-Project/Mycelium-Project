@@ -8,7 +8,7 @@ use serde::{
 use wpilog::log::DataLogValue;
 
 /// Microseconds
-type EnokiTimeStamp = u64;
+pub type EnokiTimeStamp = u64;
 
 pub fn now() -> EnokiTimeStamp {
     let now = std::time::SystemTime::now();
@@ -694,6 +694,18 @@ pub struct EnokiKey {
     path: Vec<String>,
 }
 
+impl EnokiKey {
+    pub fn prefix(mut self, prefix: String) -> Self {
+        self.path.insert(0, prefix);
+        self
+    }
+
+    pub fn suffix(mut self, suffix: String) -> Self {
+        self.path.push(suffix);
+        self
+    }
+}
+
 impl From<EnokiKey> for String {
     fn from(m: EnokiKey) -> Self {
         m.path.join("/")
@@ -787,7 +799,7 @@ impl EnokiField {
         &self.value
     }
 
-    pub fn get_value_owned(self) -> TimestampedEnokiValue {
+    pub fn get_value_owned(&self) -> TimestampedEnokiValue {
         self.value.to_owned()
     }
 
@@ -824,6 +836,13 @@ impl EnokiObject {
         }
     }
 
+    pub fn from_field(field: EnokiField) -> Self {
+        let timestamp = field.get_timestamp();
+        let mut obj = Self::new(timestamp);
+        obj.add_field(field);
+        obj
+    }
+
     pub fn add_field(&mut self, entry: EnokiField) {
         if self.has_field(&entry.get_key()) {
             let index = self.paths.get(&entry.get_key()).unwrap();
@@ -857,6 +876,9 @@ impl EnokiObject {
         if self.has_field(path) {
             let index = self.paths.get(path).unwrap();
             self.history[*index] = Some(history);
+        } else {
+            let entry = EnokiField::new(path.to_owned(), history.last().unwrap().to_owned());
+            self.add_field_with_history(entry, history);
         }
     }
 

@@ -14,9 +14,9 @@ pub enum EnokiError {
     //used specifically for pinging ssh clients
     NoValidAddress,
     #[error("NT Topic not found")]
-    NTTopicNotFound,
+    NTTopicNotFound(String),
     #[error("DL Entry not found")]
-    DLEntryNotFound,
+    DLEntryNotFound(String),
 }
 
 #[inline(always)]

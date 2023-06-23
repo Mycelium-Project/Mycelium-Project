@@ -5,8 +5,8 @@ export async function readDatalogFile(path: string): Promise<EnokiObject> {
     return invoke("plugin:datalog|read_datalog_file", {path: path});
 }
 
-export async function getDaemonEntryHistory<T extends EnokiValue>(entry: string): Promise<Array<TimestampedEnokiValue<T>>> {
-    return invoke("plugin:datalog|get_field_history", {field: entry});
+export async function getDaemonData(entry: string): Promise<EnokiObject> {
+    return invoke("plugin:datalog|retrieve_dl_daemon_data");
 }
 
 export async function sendDatalogMark<T extends EnokiValue>(entry: string, value: T): Promise<void> {

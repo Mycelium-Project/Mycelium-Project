@@ -116,6 +116,28 @@ export class EnokiObject {
         return this.history[index] as Array<TimestampedEnokiValue<T>>;
     }
 
+    public mergeHistory(other: EnokiObject): void {
+        for (let key of other.paths.keys()) { 
+            let index_other = other.paths.get(key);
+            let index_self = this.paths.get(key);
+            if (index_other === undefined || index_self === undefined) {
+                continue;
+            }
+            let history_other = other.history[index_other];
+            let history_self = this.history[index_self];
+            if (history_other === undefined) {
+                continue;
+            }
+            if (history_self === undefined) {
+                this.history[index_self] = history_other;
+                continue;
+            }
+            let merged_history = history_self.concat(history_other);
+            merged_history.sort((a, b) => a.getTimestamp() - b.getTimestamp());
+            this.history[index_self] = merged_history;
+        }
+    }
+
     public getTimestamp(): number {
         return this.timestamp;
     }
