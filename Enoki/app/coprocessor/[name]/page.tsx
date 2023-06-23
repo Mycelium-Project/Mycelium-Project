@@ -25,7 +25,7 @@ export default function Page({
         <Image
           className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
           src="/copy.svg"
-          alt="Next.js Logo"
+          alt="Placeholder Logo"
           width={180}
           height={37}
           priority
