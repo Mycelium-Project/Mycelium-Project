@@ -1,0 +1,64 @@
+import groovy.json.JsonSlurper
+
+plugins {
+    id 'java'
+}
+
+group = 'org.mycelium'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.9.1')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+def rustBasePath = "${rootDir}/native"
+
+tasks.register("getCargoOutputDir") {
+    description = "Get cargo metadata such as compiled library directory"
+    new ByteArrayOutputStream().withStream { os ->
+        exec {
+            workingDir rustBasePath
+            commandLine 'cargo', 'metadata', '--format-version', '1'
+            standardOutput = os
+        }
+
+        def outputAsString = os.toString()
+        def json = new JsonSlurper().parseText(outputAsString)
+
+        logger.info("Cargo target directory: ${json.target_directory}")
+        project.ext.cargoTarget = json.target_directory
+        ext.cargoTarget = json.target_directory
+        println "getCargoOutputDir ${project.ext.cargoTarget}"
+    }
+}
+
+tasks.register('cargoBuild', Exec) {
+    dependsOn "getCargoOutputDir"
+    description = "Builds cargo"
+    description = "Runs cargo build with the release flag"
+    workingDir rustBasePath
+    commandLine 'cargo', 'build', '--release'
+}
+
+tasks.register('rustDeploy', Sync) {
+    dependsOn 'cargoBuild'
+    description = "Copies library into java resource file"
+    from "${tasks.named("getCargoOutputDir").get().ext.cargoTarget}/release"
+    include "*.dylib","*.so"
+    into "${projectDir}/src/main/resources"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    compileTask -> compileTask.dependsOn "rustDeploy"
+}
+
+processResources.dependsOn 'rustDeploy'
