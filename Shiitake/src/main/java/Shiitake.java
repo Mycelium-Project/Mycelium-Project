@@ -1,4 +1,6 @@
+
 import java.util.Objects;
+
 
 class Shiitake {
     private static native boolean init_measurements();
@@ -21,6 +23,7 @@ class Shiitake {
     public static native double memory_total();
 
     public static void main(String[] args) {
+
         for (int i = 0; i < 100000; i++) {
             System.out.println("CPU Usage: " + cpu_usage());
             System.out.println("CPU Frequency: " + cpu_frequency());

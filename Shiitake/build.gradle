@@ -14,13 +14,16 @@ repositories {
 dependencies {
     testImplementation platform('org.junit:junit-bom:5.9.1')
     testImplementation 'org.junit.jupiter:junit-jupiter'
+
+
+
 }
 
 test {
     useJUnitPlatform()
 }
 
-def rustBasePath = "${rootDir}/native"
+def rustBasePath = "${rootDir}/shiitake-lib-rs"
 
 tasks.register("getCargoOutputDir") {
     description = "Get cargo metadata such as compiled library directory"
