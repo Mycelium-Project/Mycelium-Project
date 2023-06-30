@@ -1,3 +1,5 @@
+pub mod server;
+
 use std::cell::RefCell;
 
 use jni::JNIEnv;
@@ -5,16 +7,18 @@ use jni::JNIEnv;
 use jni::objects::{JClass, JString};
 
 use jni::sys::{jboolean, jdouble, jint};
+use serde::Serialize;
 
 use sysinfo::{NetworkExt, System, SystemExt, CpuExt};
 
 use single_value_channel::{Updater as SingleUpdater, channel_starting_with as single_channel, Receiver as SingleReceiver};
 
+
 thread_local! {
     static STATS: RefCell<Option<SingleReceiver<MeasuredStats>>> = RefCell::new(None);
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize)]
 struct MeasuredStats {
     cpu_usage: f64,
     cpu_freq: f64,
