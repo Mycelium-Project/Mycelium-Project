@@ -30,7 +30,7 @@ tasks.register("getCargoOutputDir") {
     new ByteArrayOutputStream().withStream { os ->
         exec {
             workingDir rustBasePath
-            commandLine '/home/spacecat/.cargo/bin/cargo', 'metadata', '--format-version', '1'
+            commandLine 'cargo', 'metadata', '--format-version', '1'
             standardOutput = os
         }
 
@@ -49,7 +49,7 @@ tasks.register('cargoBuild', Exec) {
     description = "Builds cargo"
     description = "Runs cargo build with the release flag"
     workingDir rustBasePath
-    commandLine '/home/spacecat/.cargo/bin/cargo', 'build', '--release'
+    commandLine 'cargo', 'build', '--release'
 }
 
 tasks.register('rustDeploy', Sync) {
