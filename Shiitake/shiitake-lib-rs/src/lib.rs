@@ -1,12 +1,11 @@
 pub mod server;
 
-use std::cell::RefCell;
-
 use jni::JNIEnv;
 
 use jni::objects::{JClass, JString};
 
 use jni::sys::{jboolean, jdouble, jint};
+use parking_lot::Mutex;
 use serde::Serialize;
 
 use sysinfo::{NetworkExt, System, SystemExt, CpuExt};
@@ -14,9 +13,7 @@ use sysinfo::{NetworkExt, System, SystemExt, CpuExt};
 use single_value_channel::{Updater as SingleUpdater, channel_starting_with as single_channel, Receiver as SingleReceiver};
 
 
-thread_local! {
-    static STATS: RefCell<Option<SingleReceiver<MeasuredStats>>> = RefCell::new(None);
-}
+static STATS: Mutex<Option<SingleReceiver<MeasuredStats>>> = Mutex::new(None);
 
 #[derive(Debug, Clone, Copy, PartialEq, Default, Serialize)]
 struct MeasuredStats {
@@ -40,14 +37,14 @@ fn jbool(b: bool) -> jboolean {
 #[no_mangle]
 #[cfg(feature = "jni")]
 pub extern "system" fn Java_Shiitake_init_1measurements<'local>(
-    env: JNIEnv<'local>,
+    _env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> jboolean {
     jbool(init_measurements())
 }
 
 pub fn init_measurements() -> bool {
-    if STATS.with(|stats| stats.borrow().is_some()) {
+    if STATS.lock().is_some() {
         return false;
     }
 
@@ -82,9 +79,7 @@ pub fn init_measurements() -> bool {
     });
 
 
-    STATS.with(move |stats| {
-        stats.replace(Some(receiver));
-    });
+    STATS.lock().replace(receiver);
 
     return true;
 }
@@ -93,90 +88,80 @@ pub fn init_measurements() -> bool {
 #[no_mangle]
 #[cfg(feature = "jni")]
 pub extern "system" fn Java_Shiitake_cpu_1usage<'local>(
-    env: JNIEnv<'local>,
+    _env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> jdouble {
     cpu_usage()
 }
 
 pub fn cpu_usage() -> f64 {
-    STATS.with(|stats| {
-        stats.borrow_mut().as_mut().map(|stats| {
-            stats.latest().cpu_usage
-        }).unwrap_or(0.0)
-    })
+    STATS.lock().as_mut().map(|stats| {
+        stats.latest().cpu_usage
+    }).unwrap_or(0.0)
 }
 
 /// Returns the latest CPU frequency in Hz
 #[no_mangle]
 #[cfg(feature = "jni")]
 pub extern "system" fn Java_Shiitake_cpu_1frequency<'local>(
-    env: JNIEnv<'local>,
+    _env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> jdouble {
     cpu_frequency()
 }
 
 pub fn cpu_frequency() -> f64 {
-    STATS.with(|stats| {
-        stats.borrow_mut().as_mut().map(|stats| {
-            stats.latest().cpu_freq
-        }).unwrap_or(0.0)
-    })
+    STATS.lock().as_mut().map(|stats| {
+        stats.latest().cpu_freq
+    }).unwrap_or(0.0)
 }
 
 /// Returns the amount of memory used by the system in bytes
 #[no_mangle]
 #[cfg(feature = "jni")]
 pub extern "system" fn Java_Shiitake_memory_1usage<'local>(
-    env: JNIEnv<'local>,
+    _env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> jdouble {
     memory_usage()
 }
 
 pub fn memory_usage() -> f64 {
-    STATS.with(|stats| {
-        stats.borrow_mut().as_mut().map(|stats| {
-            stats.latest().memory_usage
-        }).unwrap_or(0.0)
-    })
+    STATS.lock().as_mut().map(|stats| {
+        stats.latest().memory_usage
+    }).unwrap_or(0.0)
 }
 
 /// Returns the amount of network data received by the system in bytes
 #[no_mangle]
 #[cfg(feature = "jni")]
 pub extern "system" fn Java_Shiitake_network_1usage_1in<'local>(
-    env: JNIEnv<'local>,
+    _env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> jdouble {
     network_usage_in()
 }
 
 pub fn network_usage_in() -> f64 {
-    STATS.with(|stats| {
-        stats.borrow_mut().as_mut().map(|stats| {
-            stats.latest().network_usage_in
-        }).unwrap_or(0.0)
-    })
+    STATS.lock().as_mut().map(|stats| {
+        stats.latest().network_usage_in
+    }).unwrap_or(0.0)
 }
 
 /// Returns the amount of network data transmitted by the system in bytes
 #[no_mangle]
 #[cfg(feature = "jni")]
 pub extern "system" fn Java_Shiitake_network_1usage_1out<'local>(
-    env: JNIEnv<'local>,
+    _env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> jdouble {
     network_usage_out()
 }
 
 pub fn network_usage_out() -> f64 {
-    STATS.with(|stats| {
-        stats.borrow_mut().as_mut().map(|stats| {
-            stats.latest().network_usage_out
-        }).unwrap_or(0.0)
-    })
+    STATS.lock().as_mut().map(|stats| {
+        stats.latest().network_usage_out
+    }).unwrap_or(0.0)
 }
 
 /// Retursn the os summary
@@ -203,7 +188,7 @@ pub fn os_version() -> String {
 #[no_mangle]
 #[cfg(feature = "jni")]
 pub extern "system" fn Java_Shiitake_cpu_1cores<'local>(
-    env: JNIEnv<'local>,
+    _env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> jint {
     cpu_cores()
@@ -220,7 +205,7 @@ pub fn cpu_cores() -> i32 {
 #[no_mangle]
 #[cfg(feature = "jni")]
 pub extern "system" fn Java_Shiitake_memory_1total<'local>(
-    env: JNIEnv<'local>,
+    _env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> jdouble {
     memory_total()
