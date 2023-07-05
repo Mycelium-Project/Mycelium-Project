@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, hash::Hash};
+use std::{collections::HashMap, fmt::{Display, self}, hash::Hash};
 
 use serde::{
     de::Visitor,
@@ -16,7 +16,7 @@ pub fn now() -> EnokiTimeStamp {
     duration.as_micros() as EnokiTimeStamp
 }
 
-#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum EnokiValue {
     ByteArray(Vec<u8>),
     Protobuf(Vec<u8>),
@@ -84,6 +84,126 @@ impl Serialize for EnokiValue {
     }
 }
 
+impl<'de> Deserialize<'de> for EnokiValue {
+    #[inline]
+    fn deserialize<D>(deserializer: D) -> Result<EnokiValue, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct ValueVisitor;
+
+        impl<'de> Visitor<'de> for ValueVisitor {
+            type Value = EnokiValue;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("any valid JSON value")
+            }
+
+            #[inline]
+            fn visit_bool<E>(self, value: bool) -> Result<EnokiValue, E> {
+                Ok(EnokiValue::Boolean(value))
+            }
+
+            #[inline]
+            fn visit_i64<E>(self, value: i64) -> Result<EnokiValue, E> {
+                Ok(EnokiValue::Int(value))
+            }
+
+            #[inline]
+            fn visit_u64<E>(self, value: u64) -> Result<EnokiValue, E> {
+                Ok(EnokiValue::Int(value as i64))
+            }
+
+            #[inline]
+            fn visit_f64<E>(self, value: f64) -> Result<EnokiValue, E> {
+                Ok(EnokiValue::Double(value))
+            }
+
+            #[cfg(any(feature = "std", feature = "alloc"))]
+            #[inline]
+            fn visit_str<E>(self, value: &str) -> Result<Value, E>
+            where
+                E: serde::de::Error,
+            {
+                self.visit_string(String::from(value))
+            }
+
+            #[cfg(any(feature = "std", feature = "alloc"))]
+            #[inline]
+            fn visit_string<E>(self, value: String) -> Result<Value, E> {
+                Ok(EnokiValue::String(value))
+            }
+
+            #[inline]
+            fn visit_none<E>(self) -> Result<EnokiValue, E> {
+                tracing::warn!("enoki value visit none");
+                Ok(EnokiValue::DoubleArray(vec![]))
+            }
+
+            #[inline]
+            fn visit_some<D>(self, deserializer: D) -> Result<EnokiValue, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                Deserialize::deserialize(deserializer)
+            }
+
+            #[inline]
+            fn visit_unit<E>(self) -> Result<EnokiValue, E> {
+                tracing::warn!("enoki value visit unit");
+                Ok(EnokiValue::DoubleArray(vec![]))
+            }
+
+            #[inline]
+            fn visit_seq<V>(self, mut visitor: V) -> Result<EnokiValue, V::Error>
+            where
+                V: serde::de::SeqAccess<'de>,
+            {
+                let mut vec: Vec<EnokiValue> = Vec::new();
+
+                while let Some(elem) = visitor.next_element()? {
+                    vec.push(elem);
+                }
+
+                if vec.is_empty() {
+                    Ok(EnokiValue::DoubleArray(vec![]))
+                } else {
+                    match vec.first().unwrap().clone() {
+                        EnokiValue::Double(_) => Ok(EnokiValue::DoubleArray(
+                            vec.iter().map(|v| f64::from(v)).collect(),
+                        )),
+                        EnokiValue::Int(_) => Ok(EnokiValue::IntArray(
+                            vec.iter().map(|v| i64::from(v)).collect(),
+                        )),
+                        EnokiValue::Boolean(_) => Ok(EnokiValue::BooleanArray(
+                            vec.iter().map(|v| bool::from(v)).collect(),
+                        )),
+                        EnokiValue::String(_) => Ok(EnokiValue::StringArray(
+                            vec.iter().map(|v| String::from(v)).collect(),
+                        )),
+                        _ => {
+                            tracing::warn!("enoki value visit seq");
+                            Ok(EnokiValue::DoubleArray(vec![]))
+                        },
+                    }
+                }
+            }
+
+            #[cfg(any(feature = "std", feature = "alloc"))]
+            fn visit_map<V>(self, mut visitor: V) -> Result<Value, V::Error>
+            where
+                V: MapAccess<'de>,
+            {
+                Err(serde::de::Error::custom(
+                    "enoki value visit map not implemented",
+                ))
+            }
+        }
+
+        deserializer.deserialize_any(ValueVisitor)
+    }
+}
+
 impl Display for EnokiValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -104,6 +224,24 @@ impl Display for EnokiValue {
 }
 
 impl EnokiValue {
+    pub fn get_type(&self) -> String {
+        match self {
+            EnokiValue::ByteArray(_) => "ByteArray".to_string(),
+            EnokiValue::Protobuf(_) => "Protobuf".to_string(),
+            EnokiValue::Float(_) => "Float".to_string(),
+            EnokiValue::FloatArray(_) => "FloatArray".to_string(),
+            EnokiValue::Double(_) => "Double".to_string(),
+            EnokiValue::DoubleArray(_) => "DoubleArray".to_string(),
+            EnokiValue::Int(_) => "Int".to_string(),
+            EnokiValue::IntArray(_) => "IntArray".to_string(),
+            EnokiValue::String(_) => "String".to_string(),
+            EnokiValue::StringArray(_) => "StringArray".to_string(),
+            EnokiValue::Boolean(_) => "Boolean".to_string(),
+            EnokiValue::BooleanArray(_) => "BooleanArray".to_string(),
+        }
+    }
+
+
     pub fn is_binary(&self) -> bool {
         match self {
             EnokiValue::ByteArray(_) => true,
@@ -229,6 +367,17 @@ impl From<EnokiValue> for f32 {
     }
 }
 
+impl From<&EnokiValue> for f32 {
+    fn from(m: &EnokiValue) -> Self {
+        match m {
+            &EnokiValue::Float(v) => v as f32,
+            &EnokiValue::Double(v) => v as f32,
+            &EnokiValue::Int(v) => v as f32,
+            _ => panic!("Cannot convert {:?} to f32", m),
+        }
+    }
+}
+
 impl From<EnokiValue> for f64 {
     fn from(m: EnokiValue) -> Self {
         match m {
@@ -240,12 +389,34 @@ impl From<EnokiValue> for f64 {
     }
 }
 
+impl From<&EnokiValue> for f64 {
+    fn from(m: &EnokiValue) -> Self {
+        match m {
+            &EnokiValue::Double(v) => v,
+            &EnokiValue::Float(v) => v,
+            &EnokiValue::Int(v) => v as f64,
+            _ => panic!("Cannot convert {:?} to f64", m),
+        }
+    }
+}
+
 impl From<EnokiValue> for i64 {
     fn from(m: EnokiValue) -> Self {
         match m {
             EnokiValue::Int(v) => v,
             EnokiValue::Float(v) => v as i64,
             EnokiValue::Double(v) => v as i64,
+            _ => panic!("Cannot convert {:?} to i64", m),
+        }
+    }
+}
+
+impl From<&EnokiValue> for i64 {
+    fn from(m: &EnokiValue) -> Self {
+        match m {
+            &EnokiValue::Int(v) => v,
+            &EnokiValue::Float(v) => v as i64,
+            &EnokiValue::Double(v) => v as i64,
             _ => panic!("Cannot convert {:?} to i64", m),
         }
     }
@@ -264,10 +435,32 @@ impl From<EnokiValue> for String {
     }
 }
 
+impl From<&EnokiValue> for String {
+    fn from(m: &EnokiValue) -> Self {
+        match m {
+            &EnokiValue::String(ref v) => v.to_owned(),
+            &EnokiValue::Boolean(v) => v.to_string(),
+            &EnokiValue::Int(v) => v.to_string(),
+            &EnokiValue::Float(v) => v.to_string(),
+            &EnokiValue::Double(v) => v.to_string(),
+            _ => panic!("Cannot convert {:?} to String", m),
+        }
+    }
+}
+
 impl From<EnokiValue> for bool {
     fn from(m: EnokiValue) -> Self {
         match m {
             EnokiValue::Boolean(v) => v,
+            _ => panic!("Cannot convert {:?} to bool", m),
+        }
+    }
+}
+
+impl From<&EnokiValue> for bool {
+    fn from(m: &EnokiValue) -> Self {
+        match m {
+            &EnokiValue::Boolean(v) => v,
             _ => panic!("Cannot convert {:?} to bool", m),
         }
     }

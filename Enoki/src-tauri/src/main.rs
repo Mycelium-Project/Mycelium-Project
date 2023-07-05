@@ -74,13 +74,13 @@ pub fn backend_plugin<R: Runtime>() -> TauriPlugin<R> {
     tauri::plugin::Builder::new("native")
         .on_event(move |_app_handle, event| match event {
             RunEvent::Ready => {
-                tauri::async_runtime::spawn(init());
+                init()
             }
             RunEvent::MainEventsCleared => {
-                tauri::async_runtime::spawn(per_frame());
+                per_frame();
             }
             RunEvent::ExitRequested { .. } => {
-                tauri::async_runtime::spawn(close());
+                close();
             }
             _ => {}
         })
@@ -89,34 +89,32 @@ pub fn backend_plugin<R: Runtime>() -> TauriPlugin<R> {
 }
 
 ///called when the ui first starts up
-async fn init() {
+pub fn init() {
     tracing::info!("Init");
     log_result_consume(
         start_datalog_entry(
             "/ClientsConnected",
             "string[]",
             Some("Clients running from the app"),
-        )
-        .await,
+        ),
     );
 }
 
 ///anything put in this will run once per frame of the ui, keep it light
 /// WARNING: only called while window is focused
 /// if you need something to run in the background *at all times* use a thread
-async fn per_frame() {
+fn per_frame() {
     log_result_consume(
         log_datalog_value(
             "/ClientsConnected",
-            EnokiValue::StringArray(get_connect_client_names().await),
-        )
-        .await,
+            EnokiValue::StringArray(get_connect_client_names()),
+        ),
     );
 }
 
 ///called when the app is shutting down
-async fn close() {
+fn close() {
     tracing::info!("Closing");
-    DATALOG.lock().await.kill();
-    NETWORK_CLIENT_MAP.lock().await.clear();
+    DATALOG.lock().kill();
+    NETWORK_CLIENT_MAP.lock().clear();
 }

@@ -13,9 +13,9 @@ pub fn read_datalog(path: String) -> Result<Vec<DatalogEntryResponse>, EnokiErro
 }
 
 #[tauri::command]
-pub async fn retrieve_dl_daemon_data() -> EnokiObject {
+pub fn retrieve_dl_daemon_data() -> EnokiObject {
     let mut obj = EnokiObject::new(now());
-    let entries = DATALOG.lock().await.get_all_entries();
+    let entries = DATALOG.lock().get_all_entries();
     for entry in entries {
         let key = EnokiKey::from(entry.name.clone());
         let mut history = Vec::new();
@@ -28,8 +28,8 @@ pub async fn retrieve_dl_daemon_data() -> EnokiObject {
 }
 
 #[tauri::command]
-pub async fn send_mark(field: String, value: TimestampedEnokiValue) {
-    let mut datalog = DATALOG.lock().await;
+pub fn send_mark(field: String, value: TimestampedEnokiValue) {
+    let mut datalog = DATALOG.lock();
     let already_exist = datalog.summary().contains_key(&field);
     if already_exist {
         log_result_consume(

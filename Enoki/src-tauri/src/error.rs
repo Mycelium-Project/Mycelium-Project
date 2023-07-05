@@ -10,6 +10,8 @@ pub enum EnokiError {
     Datalog(#[from] wpilog::DatalogError),
     #[error("NT error: {0:?}")]
     NTTimeout(#[from] network_tables::NetworkTablesError),
+    #[error("NT lost connection")]
+    NTLostConnection,
     #[error("No valid address found")]
     //used specifically for pinging ssh clients
     NoValidAddress,

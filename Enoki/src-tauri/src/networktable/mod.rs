@@ -1,19 +1,19 @@
 
 #[macro_use]
-pub mod tauri_cmds;
 pub mod handler;
+pub mod ffi;
 // pub mod python_funcs;
 
-use std::{collections::HashMap, sync::Arc};
-
-use tauri_cmds::*;
+use std::collections::HashMap;
 use once_cell::sync::Lazy;
-use tokio::sync::Mutex;
+use parking_lot::Mutex;
+
+use ffi::tauri::*;
 
 use self::handler::{NetworkTableClientId, NetworkTableClient};
 
-pub static NETWORK_CLIENT_MAP: Lazy<Arc<Mutex<HashMap<NetworkTableClientId, NetworkTableClient>>>> = 
-    Lazy::new(|| Arc::new(Mutex::new(HashMap::new())));
+pub static NETWORK_CLIENT_MAP: Lazy<Mutex<HashMap<NetworkTableClientId, NetworkTableClient>>> = 
+    Lazy::new(|| Mutex::new(HashMap::new()));
 
 
 pub fn networktable_plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {

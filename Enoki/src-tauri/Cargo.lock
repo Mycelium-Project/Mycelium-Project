@@ -1886,6 +1886,7 @@ dependencies = [
 [[package]]
 name = "network-tables"
 version = "0.1.4"
+source = "git+https://github.com/oh-yes-0-fps/network-tables-rs#cfda7480d76ae5f16ad05924b8a955ff4813c444"
 dependencies = [
  "futures-util",
  "parking_lot",
@@ -4564,6 +4565,7 @@ dependencies = [
 [[package]]
 name = "wpilog"
 version = "0.1.2"
+source = "git+https://github.com/oh-yes-0-fps/wpilog-rs#37327c4035d996d966733c14f6df56b448971b90"
 dependencies = [
  "bimap",
  "serde",

@@ -53,12 +53,12 @@ pub fn create_datalog_daemon() -> DataLogDaemon {
     datalog.as_daemon()
 }
 
-pub async fn start_datalog_entry(
+pub fn start_datalog_entry(
     name: &str,
     entry_type: &str,
     metadata: Option<&str>,
 ) -> Result<(), EnokiError> {
-    DATALOG.lock().await.borrow_sender().start_entry(
+    DATALOG.lock().borrow_sender().start_entry(
         String::from(name),
         String::from(entry_type),
         metadata.map(String::from),
@@ -66,19 +66,17 @@ pub async fn start_datalog_entry(
     Ok(())
 }
 
-pub async fn end_datalog_entry(name: &str) -> Result<(), EnokiError> {
+pub fn end_datalog_entry(name: &str) -> Result<(), EnokiError> {
     DATALOG
         .lock()
-        .await
         .borrow_sender()
         .finish_entry(String::from(name))?;
     Ok(())
 }
 
-pub async fn log_datalog_value(name: &str, value: EnokiValue) -> Result<(), EnokiError> {
+pub fn log_datalog_value(name: &str, value: EnokiValue) -> Result<(), EnokiError> {
     DATALOG
         .lock()
-        .await
         .borrow_sender()
         .append_to_entry(String::from(name), value.into())?;
     Ok(())

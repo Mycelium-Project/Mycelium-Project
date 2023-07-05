@@ -18,9 +18,9 @@ use crate::enoki_types::{now, EnokiField, EnokiObject, TimestampedEnokiValue, En
 use crate::error::{EnokiError, log_result_consume};
 use crate::NETWORK_CLIENT_MAP;
 
-pub async fn get_connect_client_names() -> Vec<String> {
+pub fn get_connect_client_names() -> Vec<String> {
     let mut names = Vec::new();
-    for (name, _) in NETWORK_CLIENT_MAP.lock().await.iter() {
+    for (name, _) in NETWORK_CLIENT_MAP.lock().iter() {
         names.push(name.repr());
     }
     names
@@ -189,9 +189,9 @@ pub fn datalog_type(nt_type: &Type) -> String {
     }
 }
 
-pub async fn populate_history(obj: EnokiObject, identity: String, after: EnokiTimeStamp, before: EnokiTimeStamp) -> EnokiObject {
+pub fn populate_history(obj: EnokiObject, identity: String, after: EnokiTimeStamp, before: EnokiTimeStamp) -> EnokiObject {
     let mut obj = obj;
-    let entries = DATALOG.lock().await.get_all_entries();
+    let entries = DATALOG.lock().get_all_entries();
     let entry_map: HashMap<String, &wpilog::log::DatalogEntryResponse> = 
         HashMap::from_iter(entries.iter().map(|entry| (entry.name.clone(), entry)));
     let mut vec_of_vec = Vec::new();
@@ -215,21 +215,14 @@ pub async fn populate_history(obj: EnokiObject, identity: String, after: EnokiTi
 
 
 pub fn start_nt4_client(
-    address: Ipv4Addr,
-    port: u16,
+    id: NetworkTableClientId,
     identity: String,
 ) -> Result<NetworkTableClient, EnokiError> {
     let (snd_pub, rec_pub) = channel::<EnokiObject>(255);
     let (rec_sub, snd_sub) = single_channel(HashMap::new());
     let (subscription_sender, subscription_receiver) = channel::<SubscriptionPackage>(255);
-    let id = NetworkTableClientId {
-        ip: address.octets(),
-        port,
-        identity: identity.clone(),
-    };
     let thread = nt4(
-        address,
-        port,
+        id.clone(),
         identity,
         subscription_receiver,
         rec_pub,
@@ -241,8 +234,7 @@ pub fn start_nt4_client(
 }
 
 fn nt4(
-    address: Ipv4Addr,
-    port: u16,
+    id: NetworkTableClientId,
     identity: String,
     mut subscriptions: Receiver<SubscriptionPackage>,
     mut input: Receiver<EnokiObject>,
@@ -251,6 +243,9 @@ fn nt4(
     tokio::task::Builder::new()
         .name(format!("NT4-{}", identity).as_str())
         .spawn(async move {
+            let address = Ipv4Addr::new(id.ip[0], id.ip[1], id.ip[2], id.ip[3]);
+            let port = id.port;
+
             let mut subs: HashMap<String, Subscription> = HashMap::new();
             let mut pubs: HashMap<String, PublishedTopic> = HashMap::new();
 
@@ -262,7 +257,7 @@ fn nt4(
                     should_reconnect: Box::new(default_should_reconnect),
                     on_announce: Box::new(|topic| {
                         Box::pin(async {
-                            log_result_consume(DATALOG.lock().await.borrow_sender().start_entry(
+                            log_result_consume(DATALOG.lock().borrow_sender().start_entry(
                                 topic.name.clone(),
                                 datalog_type(&topic.r#type),
                                 Some("{ source: \"Enoki Network Table Client\"}".to_string()),
@@ -275,7 +270,6 @@ fn nt4(
                             if let Some(topic) = opt_topic {
                                 log_result_consume(DATALOG
                                     .lock()
-                                    .await
                                     .borrow_sender()
                                     .finish_entry(topic.name.clone()));
                                 tracing::info!("Un-announced {}", topic.name);
@@ -303,7 +297,7 @@ fn nt4(
                 panic!();
             });
 
-            let datalog_sender = DATALOG.lock().await.get_sender();
+            let datalog_sender = DATALOG.lock().get_sender();
 
             let mut table = HashMap::new();
 
