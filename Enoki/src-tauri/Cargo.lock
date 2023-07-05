@@ -4565,7 +4565,7 @@ dependencies = [
 [[package]]
 name = "wpilog"
 version = "0.1.2"
-source = "git+https://github.com/oh-yes-0-fps/wpilog-rs#37327c4035d996d966733c14f6df56b448971b90"
+source = "git+https://github.com/oh-yes-0-fps/wpilog-rs#f34033c4e4ba6f6f87a1bfc5c4968490ae04c0cc"
 dependencies = [
  "bimap",
  "serde",
