@@ -1,6 +1,7 @@
-import { Card, Typography } from "@material-tailwind/react";
+import { Card, Tooltip, Typography } from "@material-tailwind/react";
 import { JSX } from "react";
-import { DisplayTableEntry } from "@/utilities/NT4Handler";
+import { DisplayTableEntry } from "@/utilities/NetworkTableV4";
+import Image from "next/image";
 
 const TABLE_HEAD: string[] = ["Key", "Type", "Value", "Age (s)", ""];
 
@@ -107,15 +108,16 @@ export default function NetworkTable(): JSX.Element {
                   </Typography>
                 </td>
                 <td className="p-4 hidden sm:table-cell">
-                  <Typography
-                    as="a"
-                    href="#"
-                    variant="small"
-                    color="blue"
-                    className="font-medium"
-                  >
-                    Copy
-                  </Typography>
+                  <Tooltip content="Copy to clipboard" placement="bottom">
+                    <Image
+                      className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
+                      src="../copy.svg"
+                      alt="Copy"
+                      width={25}
+                      height={25}
+                      priority
+                    />
+                  </Tooltip>
                 </td>
               </tr>
             )

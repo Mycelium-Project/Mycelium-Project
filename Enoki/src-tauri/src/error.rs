@@ -5,13 +5,20 @@ use thiserror::Error;
 #[derive(Error, Debug, Serialize)]
 pub enum EnokiError {
     #[error("DataLog io error: {0:?}")]
-    DlIo(String),
+    DatalogIo(String),
     #[error("DataLog error: {0:?}")]
-    Dl(#[from] wpilog::DatalogError),
+    Datalog(#[from] wpilog::DatalogError),
     #[error("NT error: {0:?}")]
     NTTimeout(#[from] network_tables::NetworkTablesError),
-    #[error("Not main thread: {0:?}")]
-    NotMainThread(String),
+    #[error("NT lost connection")]
+    NTLostConnection,
+    #[error("No valid address found")]
+    //used specifically for pinging ssh clients
+    NoValidAddress,
+    #[error("NT Topic not found")]
+    NTTopicNotFound(String),
+    #[error("DL Entry not found")]
+    DLEntryNotFound(String),
 }
 
 #[inline(always)]
@@ -45,7 +52,7 @@ pub struct TraceWriter {
 impl TraceWriter {
     pub fn new() -> Self {
         let currunt_time_string =
-            chrono::Local::now().format("%Y-%m-%d_%H-%M-%S").to_string() + ".debuglog";
+            chrono::Local::now().format("%Y-%m-%d_%H-%M-%S").to_string() + ".debuglog.txt";
 
         let file_path = document_dir()
             .unwrap()
