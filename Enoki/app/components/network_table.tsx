@@ -1,9 +1,17 @@
 import { Card, Tooltip, Typography } from "@material-tailwind/react";
 import { JSX } from "react";
-import { DisplayTableEntry } from "@/utilities/NetworkTableV4";
 import Image from "next/image";
+import { EnokiValue } from "@/glue/EnokiTypes";
 
 const TABLE_HEAD: string[] = ["Key", "Type", "Value", "Age (s)", ""];
+
+type DisplayTableEntry = {
+  key: string;
+  type: string;
+  value: EnokiValue;
+  last_updated: number;
+  client_id: string;
+};
 
 // TODO: Swap this from demo data to live data from rust handler
 const TABLE_ROWS: DisplayTableEntry[] = [
