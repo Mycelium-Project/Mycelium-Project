@@ -5,7 +5,7 @@ import { Bar, Line, Scatter, Bubble, Pie } from "react-chartjs-2";
 export function LineGraph(
   data: any,
   width: number,
-  height: number
+  height: number,
 ): JSX.Element {
   return (
     <Line
@@ -21,7 +21,7 @@ export function LineGraph(
 export function BarGraph(
   data: any,
   width: number,
-  height: number
+  height: number,
 ): JSX.Element {
   return (
     <Bar
@@ -37,7 +37,7 @@ export function BarGraph(
 export function PieChart(
   data: any,
   width: number,
-  height: number
+  height: number,
 ): JSX.Element {
   return (
     <Pie
@@ -53,7 +53,7 @@ export function PieChart(
 export function ScatterChart(
   data: any,
   width: number,
-  height: number
+  height: number,
 ): JSX.Element {
   return (
     <Scatter
@@ -69,7 +69,7 @@ export function ScatterChart(
 export function BubbleChart(
   data: any,
   width: number,
-  height: number
+  height: number,
 ): JSX.Element {
   return (
     <Bubble

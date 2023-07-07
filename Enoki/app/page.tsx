@@ -3,12 +3,12 @@
 import Image from "next/image";
 import { JSX } from "react";
 import {
-  NetworkTableClientId,
-  StartNetworkTableClient,
-  TableEntry,
-} from "@/utilities/NetworkTableV4";
+  NetworkTableClient,
+  NetworkTablePubbedTopic,
+  start_network_table_client,
+} from "@/glue/NetworkTable";
 import NetworkTable from "@/app/components/network_table";
-import { TraceWarn } from "@/utilities/Tracing";
+import { TraceWarn } from "@/glue/Tracing";
 import { LargeButton } from "@/app/components/buttons";
 import {
   CoprocessorPurposeCard,
@@ -107,8 +107,8 @@ export default function Home(): JSX.Element {
         />
 
         <LargeButton
-          action={PollSubscriptions}
-          title={"Get Subbed"}
+          action={PollTopicNames}
+          title={"Get Topics"}
           subtext={
             "Click here to poll all subbed data on the network tables server on localhost:5810"
           }
@@ -119,24 +119,28 @@ export default function Home(): JSX.Element {
 }
 
 //create a test table variable
-let testTable: NetworkTableClientId;
+let testTable: NetworkTableClient;
 
 async function StartNTClient(): Promise<void> {
   console.log("Starting NetworkTables");
-  testTable = await StartNetworkTableClient([127, 0, 0, 1], 5810, "Enoki-test");
+  testTable = await start_network_table_client(
+    [127, 0, 0, 1],
+    5810,
+    "Enoki-test",
+  );
 }
 
 function StopNTClient(): void {
   console.log("Stopping NetworkTables");
   if (testTable) {
-    testTable.stopNetworkTableClient();
+    testTable.stop();
   } else {
     TraceWarn("No client to stop");
   }
 }
 
 function DoesClientExist(): void {
-  testTable.doesNetworkTableClientExist().then((result: boolean): void => {
+  testTable.isStopped().then((result: boolean): void => {
     console.log(result);
   });
 }
@@ -148,11 +152,13 @@ function SubscribeExample(): void {
 
 function PublishExample(): void {
   console.log("Publishing to NetworkTables");
-  testTable.setEntry("/test", 1);
+  let testNumber: NetworkTablePubbedTopic<number> =
+    testTable.createIntTopic("/test");
+  testNumber.setValue(42);
 }
 
-async function PollSubscriptions(): Promise<void> {
+async function PollTopicNames(): Promise<void> {
   console.log("Polling Subscriptions");
-  let entries: TableEntry[] = await testTable.getEntries();
+  let entries: string[] = testTable.getPubbedTopicNames();
   console.log(entries);
 }
