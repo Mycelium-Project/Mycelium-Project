@@ -120,7 +120,7 @@ export default function NetworkTable(): JSX.Element {
                   </Tooltip>
                 </td>
               </tr>
-            )
+            ),
           )}
         </tbody>
       </table>
