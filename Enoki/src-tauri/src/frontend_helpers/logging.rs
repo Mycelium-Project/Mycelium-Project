@@ -129,12 +129,12 @@ impl Visit for MetaVisitor {
 }
 impl MetaVisitor {
     pub fn line_num(&self) -> String {
-        self.line_num.clone().unwrap_or("unknown".into()).replace('"', "")
+        self.line_num.as_ref().unwrap_or(&"unknown".into()).replace('"', "")
     }
     pub fn file_path(&self) -> String {
-        self.file_path.clone().unwrap_or("unknown".into()).replace('"', "")
+        self.file_path.as_ref().unwrap_or(&"unknown".into()).replace('"', "")
     }
     pub fn message(&self) -> String {
-        self.message.clone().replace('"', "")
+        self.message.replace('"', "")
     }
 }

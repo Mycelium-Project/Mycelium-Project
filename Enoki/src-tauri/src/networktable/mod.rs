@@ -1,18 +1,19 @@
 
 #[macro_use]
-pub mod tauri_cmds;
 pub mod handler;
+pub mod ffi;
+// pub mod python_funcs;
 
-use std::{collections::HashMap, sync::Arc};
-
-use tauri_cmds::*;
+use std::collections::HashMap;
 use once_cell::sync::Lazy;
-use tokio::sync::Mutex;
+use parking_lot::Mutex;
+
+use ffi::tauri::*;
 
 use self::handler::{NetworkTableClientId, NetworkTableClient};
 
-pub static NETWORK_CLIENT_MAP: Lazy<Arc<Mutex<HashMap<NetworkTableClientId, NetworkTableClient>>>> = 
-    Lazy::new(|| Arc::new(Mutex::new(HashMap::new())));
+pub static NETWORK_CLIENT_MAP: Lazy<Mutex<HashMap<NetworkTableClientId, NetworkTableClient>>> = 
+    Lazy::new(|| Mutex::new(HashMap::new()));
 
 
 pub fn networktable_plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
@@ -20,22 +21,14 @@ pub fn networktable_plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R>
         .setup(|_app_handle| {tracing::info!("Setting up networktable plugin"); Ok(())})
         .invoke_handler(tauri::generate_handler![
             start_network_table_client,
-            does_network_table_client_exist,
+            is_network_table_client_stopped,
             stop_network_table_client,
             subscribe_to_topic,
-            set_boolean_topic,
-            set_float_topic,
-            set_double_topic,
-            set_string_topic,
-            set_int_topic,
-            set_boolean_array_topic,
-            set_float_array_topic,
-            set_double_array_topic,
-            set_string_array_topic,
-            set_int_array_topic,
-            get_subbed_entries_values,
-            get_subbed_entry_value,
-            get_client_timestamp
+            unsubscribe_from_topic,
+            get_subbed_data,
+            get_subbed_data_with_history,
+            set_topic_value,
+            unpublish_topic
         ])
         .build()
 }

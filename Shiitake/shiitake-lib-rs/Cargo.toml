@@ -1,0 +1,30 @@
+[package]
+name = "shiitake-lib-rs"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+jni = "0.21.1"
+single_value_channel = "1.2.2"
+sysinfo = "0.29.2"
+axum = { version = "0.6.18" } # Web framework that focuses on ergonomics and modularity.
+hyper = { version = "0.14.26", features = ["full"] } # A fast and correct HTTP library.
+tokio = { version = "1.28.2", features = ["full"] } # Event-driven, non-blocking I/O platform.
+#tower = "0.4.13" # Modular reusable components for building robust clients and servers.
+serde = { version = "1.0.164", features = ["derive"] } # A serialization/deserialization framework.
+serde_json = { version = "1.0.97" } # Serde serializion/deserialization of JSON data.
+#once_cell = { version = "1.16.0" } # Single assignment cells and lazy values.
+#base64 = { version = "0.13" } # Encode and decode base64 as bytes or utf8.
+http = { version = "0.2.8" } # Types for HTTP requests and responses.
+tracing = { version = "0.1.37" } #  Application-level tracing for Rust.
+tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+parking_lot = "0.12.1"
+
+[lib]
+crate_type = ["cdylib"]
+
+[features]
+default = ["jni"]
+jni = []

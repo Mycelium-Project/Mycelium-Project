@@ -3,7 +3,7 @@
 
 use datalog::handler::log_datalog_value;
 use error::TraceWriter;
-use mushroom_types::MushroomValue;
+use enoki_types::EnokiValue;
 use networktable::handler::get_connect_client_names;
 
 use tauri::plugin::TauriPlugin;
@@ -18,7 +18,7 @@ use crate::frontend_helpers::logging::tracing_frontend;
 use crate::networktable::NETWORK_CLIENT_MAP;
 
 mod error;
-pub mod mushroom_types;
+pub mod enoki_types;
 
 #[cfg(test)]
 mod test;
@@ -26,8 +26,8 @@ mod test;
 pub mod datalog;
 pub mod frontend_helpers;
 pub mod networktable;
-pub mod terminal;
 pub mod python_helpers;
+pub mod terminal;
 
 #[tokio::main]
 async fn main() {
@@ -74,16 +74,13 @@ pub fn backend_plugin<R: Runtime>() -> TauriPlugin<R> {
     tauri::plugin::Builder::new("native")
         .on_event(move |_app_handle, event| match event {
             RunEvent::Ready => {
-                // tauri::async_runtime::block_on(init());
-                tauri::async_runtime::spawn(init());
+                init()
             }
             RunEvent::MainEventsCleared => {
-                // tauri::async_runtime::block_on(per_frame());
-                tauri::async_runtime::spawn(per_frame());
+                per_frame();
             }
             RunEvent::ExitRequested { .. } => {
-                // tauri::async_runtime::block_on(close());
-                tauri::async_runtime::spawn(close());
+                close();
             }
             _ => {}
         })
@@ -92,34 +89,32 @@ pub fn backend_plugin<R: Runtime>() -> TauriPlugin<R> {
 }
 
 ///called when the ui first starts up
-async fn init() {
+pub fn init() {
     tracing::info!("Init");
     log_result_consume(
         start_datalog_entry(
             "/ClientsConnected",
             "string[]",
             Some("Clients running from the app"),
-        )
-        .await,
+        ),
     );
 }
 
 ///anything put in this will run once per frame of the ui, keep it light
 /// WARNING: only called while window is focused
 /// if you need something to run in the background *at all times* use a thread
-async fn per_frame() {
+fn per_frame() {
     log_result_consume(
         log_datalog_value(
             "/ClientsConnected",
-            MushroomValue::StringArray(get_connect_client_names().await),
-        )
-        .await,
+            EnokiValue::StringArray(get_connect_client_names()),
+        ),
     );
 }
 
 ///called when the app is shutting down
-async fn close() {
+fn close() {
     tracing::info!("Closing");
-    DATALOG.lock().await.kill();
-    NETWORK_CLIENT_MAP.lock().await.clear();
+    DATALOG.lock().kill();
+    NETWORK_CLIENT_MAP.lock().clear();
 }
