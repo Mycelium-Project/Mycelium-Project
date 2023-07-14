@@ -157,10 +157,10 @@
   resolved "https://registry.yarnpkg.com/@kurkle/color/-/color-0.3.2.tgz#5acd38242e8bde4f9986e7913c8fdf49d3aa199f"
   integrity sha512-fuscdXJ9G1qb7W8VdHi+IwRqij3lBkosAm4ydQtEmbY58OzHXqQhvlxqEkoz0yssNVn38bcpRWgA9PP+OGoisw==
 
-"@material-tailwind/react@^2.0.4":
-  version "2.0.4"
-  resolved "https://registry.yarnpkg.com/@material-tailwind/react/-/react-2.0.4.tgz#bf1b732f1e514f7ca0b70cbc58cb32a36e982a94"
-  integrity sha512-oPXfbDPutC2Sf/v3FNauirC3qBKUO77YfJgMgAweL53O+lNYqJCsg7znHx2W2KH6lJCDB0vRnry2KRRgwjCTuQ==
+"@material-tailwind/react@^2.0.5":
+  version "2.0.5"
+  resolved "https://registry.yarnpkg.com/@material-tailwind/react/-/react-2.0.5.tgz#ed5f76ee6aabcf6c204ea06477ded449116728be"
+  integrity sha512-nHow36ADmWx48Z9jw5pLlRSq37o0+8J/UJYrZJRM+rPyE3j8wu+/ZbJ7yH7/FfF86/83D5yEMqGepG4TKAcEEg==
   dependencies:
     "@floating-ui/react" "^0.19.0"
     "@heroicons/react" "^2.0.13"
