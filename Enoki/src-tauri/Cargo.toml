@@ -22,7 +22,7 @@ tauri = { version = "1.4.0", features = ["api-all"] }
 tokio = { version = "1.29.1", features = ["rt", "sync", "net", "time", "macros", "rt-multi-thread", "parking_lot", "tracing" ] }
 tracing-subscriber = "0.3.17"
 tracing = "0.1.27"
-rmpv = "1.0.0"
+rmpv = "1.0.1"
 single_value_channel = "1.2.2"
 chrono = "0.4.26"
 thiserror = "1.0.44"
