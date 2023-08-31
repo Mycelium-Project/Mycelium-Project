@@ -3,13 +3,12 @@
 import Image from "next/image";
 import { JSX } from "react";
 import {
-  DoesNetworkTableClientExist,
-  NetworkTableClientId,
-  StartNetworkTableClient,
-  TableEntry,
-} from "@/utilities/NetworkTableV4";
+  NetworkTableClient,
+  NetworkTablePubbedTopic,
+  start_network_table_client,
+} from "@/glue/NetworkTable";
 import NetworkTable from "@/app/components/network_table";
-import { TraceWarn } from "@/utilities/Tracing";
+import { TraceWarn } from "@/glue/Tracing";
 import { LargeButton } from "@/app/components/buttons";
 import {
   CoprocessorPurposeCard,
@@ -30,8 +29,8 @@ export default function Home(): JSX.Element {
       <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px]">
         <Image
           className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
+          src="/copy.svg"
+          alt="Placeholder Logo"
           width={180}
           height={37}
           priority
@@ -108,8 +107,8 @@ export default function Home(): JSX.Element {
         />
 
         <LargeButton
-          action={PollSubscriptions}
-          title={"Get Subbed"}
+          action={PollTopicNames}
+          title={"Get Topics"}
           subtext={
             "Click here to poll all subbed data on the network tables server on localhost:5810"
           }
@@ -120,26 +119,30 @@ export default function Home(): JSX.Element {
 }
 
 //create a test table variable
-let testTable: NetworkTableClientId;
+let testTable: NetworkTableClient;
 
 async function StartNTClient(): Promise<void> {
   console.log("Starting NetworkTables");
-  testTable = await StartNetworkTableClient([127, 0, 0, 1], 5810, "Enoki-test");
+  testTable = await start_network_table_client(
+    [127, 0, 0, 1],
+    5810,
+    "Enoki-test",
+  );
 }
 
 function StopNTClient(): void {
   console.log("Stopping NetworkTables");
   if (testTable) {
-    testTable.stopNetworkTableClient();
+    testTable.stop();
   } else {
     TraceWarn("No client to stop");
   }
 }
 
 function DoesClientExist(): void {
-  DoesNetworkTableClientExist(testTable).then((result: boolean) =>
-    console.log(result)
-  );
+  testTable.isStopped().then((result: boolean): void => {
+    console.log(result);
+  });
 }
 
 function SubscribeExample(): void {
@@ -149,11 +152,13 @@ function SubscribeExample(): void {
 
 function PublishExample(): void {
   console.log("Publishing to NetworkTables");
-  testTable.setEntry("/test", 1);
+  let testNumber: NetworkTablePubbedTopic<number> =
+    testTable.createIntTopic("/test");
+  testNumber.setValue(42);
 }
 
-async function PollSubscriptions(): Promise<void> {
+async function PollTopicNames(): Promise<void> {
   console.log("Polling Subscriptions");
-  let entries: TableEntry[] = await testTable.getEntries();
+  let entries: string[] = testTable.getPubbedTopicNames();
   console.log(entries);
 }
