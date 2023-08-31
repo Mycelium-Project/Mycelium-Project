@@ -7,7 +7,7 @@ use std::net::SocketAddrV4;
 use network_tables::v4::SubscriptionOptions;
 
 use crate::{
-    networktable::handler::{start_nt4_client, SubscriptionPackage, populate_history},
+    networktable::handler::{start_nt4_client, SubscriptionPackage},
     NETWORK_CLIENT_MAP, enoki_types::{EnokiObject, EnokiTimeStamp, now, TimestampedEnokiValue, EnokiField}, error::EnokiError,
 };
 
@@ -112,7 +112,9 @@ pub fn get_subbed_data_with_history(
             return Err("No data found".to_string());
         }
         tracing::info!("Got subbed data for topic {}", topic);
-        Ok(populate_history(data.unwrap(), client_id.identity, after, now()))
+        // Ok(populate_history(data.unwrap(), client_id.identity, after, now()))
+        tracing::warn!("History not implemented");
+        Err("Not implemented".to_string())
     } else {
         tracing::warn!("No network table client found for {}", client_id);
         Err("No network table client found".to_string())

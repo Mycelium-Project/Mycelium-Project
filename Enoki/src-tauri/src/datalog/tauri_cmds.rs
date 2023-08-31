@@ -15,7 +15,8 @@ pub fn read_datalog(path: String) -> Result<Vec<DatalogEntryResponse>, EnokiErro
 #[tauri::command]
 pub fn retrieve_dl_daemon_data() -> EnokiObject {
     let mut obj = EnokiObject::new(now());
-    let entries = DATALOG.lock().get_all_entries();
+    let mut dl = DATALOG.lock();
+    let entries = dl.get_all_entries();
     for entry in entries {
         let key = EnokiKey::from(entry.name.clone());
         let mut history = Vec::new();

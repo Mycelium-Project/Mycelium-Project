@@ -2,7 +2,7 @@ use serde::Serialize;
 use tauri::api::path::document_dir;
 use thiserror::Error;
 
-#[derive(Error, Debug, Serialize)]
+#[derive(Error, Debug)]
 pub enum EnokiError {
     #[error("DataLog io error: {0:?}")]
     DatalogIo(String),
@@ -19,7 +19,18 @@ pub enum EnokiError {
     NTTopicNotFound(String),
     #[error("DL Entry not found")]
     DLEntryNotFound(String),
+    #[error("Ping error: {0:?}")]
+    Ping(#[from] surge_ping::SurgeError),
+    #[error("Io error: {0:?}")]
+    Io(#[from] std::io::Error),
 }
+
+impl Serialize for EnokiError {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(format!("{}", self).as_str())
+    }
+}
+
 
 #[inline(always)]
 /// Logs the error if there is one

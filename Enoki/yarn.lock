@@ -328,7 +328,7 @@
   dependencies:
     tslib "^2.4.0"
 
-"@tauri-apps/api@^1.4.0":
+"@tauri-apps/api@1.4.0", "@tauri-apps/api@^1.4.0":
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/@tauri-apps/api/-/api-1.4.0.tgz#b4013ca3d17b853f7df29fe14079ebb4d52dbffa"
   integrity sha512-Jd6HPoTM1PZSFIzq7FB8VmMu3qSSyo/3lSwLpoapW+lQ41CL5Dow2KryLg+gyazA/58DRWI9vu/XpEeHK4uMdw==
@@ -2609,6 +2609,24 @@ tapable@^2.2.0:
   version "2.2.1"
   resolved "https://registry.npmjs.org/tapable/-/tapable-2.2.1.tgz"
   integrity sha512-GNzQvQTOIP6RyTfE2Qxb8ZVlNmw0n88vp1szwWRimP02mnTsx3Wtn5qRdqY9w2XduFNUgvOwhNnQsjwCp+kqaQ==
+
+"tauri-plugin-fs-extra-api@https://github.com/tauri-apps/tauri-plugin-fs-extra#v1":
+  version "0.0.0"
+  resolved "https://github.com/tauri-apps/tauri-plugin-fs-extra#1344db48a39b44fe46e9943bf7cddca2fa00caaf"
+  dependencies:
+    "@tauri-apps/api" "1.4.0"
+
+"tauri-plugin-positioner-api@https://github.com/tauri-apps/tauri-plugin-positioner#v1":
+  version "0.2.7"
+  resolved "https://github.com/tauri-apps/tauri-plugin-positioner#585a0218b7abb53623bbe3001397e1c734c83e89"
+  dependencies:
+    "@tauri-apps/api" "1.4.0"
+
+"tauri-plugin-store-api@https://github.com/tauri-apps/tauri-plugin-store#v1":
+  version "0.0.0"
+  resolved "https://github.com/tauri-apps/tauri-plugin-store#a65ce9bfb168a9a3cd7ed4102b9f22770cc3abfa"
+  dependencies:
+    "@tauri-apps/api" "1.4.0"
 
 text-table@^0.2.0:
   version "0.2.0"

@@ -31,10 +31,10 @@ pub fn create_datalog_daemon() -> DataLogDaemon {
         panic!();
     }
 
-    let currunt_time_string =
+    let current_time_string =
         chrono::Local::now().format("%Y-%m-%d_%H-%M-%S").to_string() + ".wpilog";
 
-    let relative_path = format!("{}/{}", RELATIVE_DIRECTORY, currunt_time_string);
+    let relative_path = format!("{}/{}", RELATIVE_DIRECTORY, current_time_string);
 
     let abs_path = document_dir()
         .unwrap()

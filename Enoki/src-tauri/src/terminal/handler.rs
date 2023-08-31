@@ -1,5 +1,7 @@
 use std::{path::PathBuf, process::Child, io::{Write, Read}};
 
+use tauri::api::process::{CommandChild, Command};
+
 #[derive(Debug)]
 pub struct CLIWrapper {
     pub cli_exe: PathBuf,
@@ -102,5 +104,34 @@ impl CLIWrapper {
         } else {
             "unknown".to_string()
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct CLIWrapperTauri {
+    pub cli_exe: PathBuf,
+    pub cli_args: Vec<String>,
+    pub cli: Option<CommandChild>
+}
+
+impl CLIWrapperTauri {
+    pub fn new(cli_exe: PathBuf, cli_args: Vec<String>) -> Self {
+        Self {
+            cli_exe,
+            cli_args,
+            cli: None
+        }
+    }
+
+    pub fn run(&mut self) -> Result<(), &'static str> {
+        let (mut rx, mut child) = Command::new(
+                self.cli_exe.to_str().ok_or("exe path invalid")?)
+            .args(self.cli_args.clone())
+            .spawn()
+            .expect("failed to spawn cli");
+
+        self.cli = Some(child);
+
+        Ok(())
     }
 }

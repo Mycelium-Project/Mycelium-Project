@@ -13,7 +13,7 @@ use std::time::Duration;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::task::JoinHandle as TokioJoinHandle;
 
-use crate::datalog::DATALOG;
+// use crate::datalog::DATALOG;
 use crate::enoki_types::{now, EnokiField, EnokiObject, TimestampedEnokiValue, EnokiKey, EnokiTimeStamp};
 use crate::error::{EnokiError, log_result_consume};
 use crate::NETWORK_CLIENT_MAP;
@@ -189,29 +189,30 @@ pub fn datalog_type(nt_type: &Type) -> String {
     }
 }
 
-pub fn populate_history(obj: EnokiObject, identity: String, after: EnokiTimeStamp, before: EnokiTimeStamp) -> EnokiObject {
-    let mut obj = obj;
-    let entries = DATALOG.lock().get_all_entries();
-    let entry_map: HashMap<String, &wpilog::log::DatalogEntryResponse> = 
-        HashMap::from_iter(entries.iter().map(|entry| (entry.name.clone(), entry)));
-    let mut vec_of_vec = Vec::new();
-    for field in obj.get_fields() {
-        let key = field.get_key().clone().prefix(identity.clone());
-        if let Some(entry) = entry_map.get(&String::from(key.clone())) {
-            let mut tv_vec = Vec::new();
-            entry.marks.iter().for_each(|mark| {
-                if mark.timestamp > after && mark.timestamp < before {
-                    tv_vec.push(TimestampedEnokiValue::new(mark.timestamp, mark.value.clone().into()));
-                }
-            });
-            vec_of_vec.push((key, tv_vec));
-        }
-    }
-    for (key, vec) in vec_of_vec {
-        obj.set_history(&key, vec);
-    }
-    obj
-}
+// pub fn populate_history(obj: EnokiObject, identity: String, after: EnokiTimeStamp, before: EnokiTimeStamp) -> EnokiObject {
+//     let mut obj = obj;
+//     let mut dl = DATALOG.lock();
+//     let entries = dl.get_all_entries();
+//     let entry_map: HashMap<String, &wpilog::log::DatalogEntryResponse> = 
+//         HashMap::from_iter(entries.iter().map(|entry| (entry.name.clone(), entry)));
+//     let mut vec_of_vec = Vec::new();
+//     for field in obj.get_fields() {
+//         let key = field.get_key().clone().prefix(identity.clone());
+//         if let Some(entry) = entry_map.get(&String::from(key.clone())) {
+//             let mut tv_vec = Vec::new();
+//             entry.marks.iter().for_each(|mark| {
+//                 if mark.timestamp > after && mark.timestamp < before {
+//                     tv_vec.push(TimestampedEnokiValue::new(mark.timestamp, mark.value.clone().into()));
+//                 }
+//             });
+//             vec_of_vec.push((key, tv_vec));
+//         }
+//     }
+//     for (key, vec) in vec_of_vec {
+//         obj.set_history(&key, vec);
+//     }
+//     obj
+// }
 
 
 pub fn start_nt4_client(
@@ -257,21 +258,22 @@ fn nt4(
                     should_reconnect: Box::new(default_should_reconnect),
                     on_announce: Box::new(|topic| {
                         Box::pin(async {
-                            log_result_consume(DATALOG.lock().borrow_sender().start_entry(
-                                topic.name.clone(),
-                                datalog_type(&topic.r#type),
-                                Some("{ source: \"Enoki Network Table Client\"}".to_string()),
-                            ));
+                            // log_result_consume(DATALOG.lock().borrow_sender().start_entry(
+                            //     topic.name.clone(),
+                            //     datalog_type(&topic.r#type),
+                            //     Some("{ source: \"Enoki Network Table Client\"}".to_string()),
+                            // ));
                             tracing::info!("Announced {}", topic.name);
                         })
                     }),
                     on_un_announce: Box::new(|opt_topic| {
                         Box::pin(async {
                             if let Some(topic) = opt_topic {
-                                log_result_consume(DATALOG
-                                    .lock()
-                                    .borrow_sender()
-                                    .finish_entry(topic.name.clone()));
+                                // log_result_consume(DATALOG
+                                //     .lock()
+                                //     .borrow_sender()
+                                //     .finish_entry(topic.name.clone()
+                                // ));
                                 tracing::info!("Un-announced {}", topic.name);
                             } else {
                                 tracing::info!("Un-announced unknown");
@@ -297,7 +299,7 @@ fn nt4(
                 panic!();
             });
 
-            let datalog_sender = DATALOG.lock().get_sender();
+            // let datalog_sender = DATALOG.lock().get_sender();
 
             let mut table = HashMap::new();
 
@@ -363,10 +365,10 @@ fn nt4(
                             ),
                         );
                         new_obj_data.add_field(field.clone());
-                        log_result_consume(datalog_sender.append_to_entry_with_timestamp(
-                            EnokiKey::from(msg.topic_name).prefix(identity.clone()).into(),
-                            field.get_value_owned().value.into(),
-                            field.get_value().timestamp));
+                        // log_result_consume(datalog_sender.append_to_entry_with_timestamp(
+                        //     EnokiKey::from(msg.topic_name).prefix(identity.clone()).into(),
+                        //     field.get_value_owned().value.into(),
+                        //     field.get_value().timestamp));
                     }
                     if let Some(object) = table.get_mut(topic) {
                         object.update_all(&new_obj_data)
@@ -391,18 +393,4 @@ fn nt4(
             }
         })
         .unwrap()
-}
-
-pub async fn ping_addresses(
-    addresses: HashMap<String, Ipv4Addr>,
-) -> Result<HashMap<String, bool>, EnokiError> {
-    let mut results: HashMap<String, bool> = HashMap::new();
-    for (name, address) in addresses {
-        if let Ok(()) = ping::ping(IpAddr::V4(address), None, None, None, None, None) {
-            results.insert(name, true);
-        } else {
-            results.insert(name, false);
-        }
-    }
-    Ok(results)
 }
