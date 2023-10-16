@@ -2105,11 +2105,12 @@ dependencies = [
 
 [[package]]
 name = "notify-debouncer-mini"
-version = "0.3.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e55ee272914f4563a2f8b8553eb6811f3c0caea81c756346bad15b7e3ef969f0"
+checksum = "5d40b221972a1fc5ef4d858a2f671fb34c75983eb385463dff3780eeff6a9d43"
 dependencies = [
  "crossbeam-channel",
+ "log",
  "notify",
  "serde",
 ]
@@ -3786,7 +3787,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-fs-extra"
 version = "0.0.0"
-source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v1#5b814f56e6368fdec46c4ddb04a07e0923ff995a"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v1#77b81af36cc6c03b07c59a2988b0f6d20960f1b0"
 dependencies = [
  "log",
  "serde",
@@ -3798,7 +3799,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-fs-watch"
 version = "0.0.0"
-source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v1#5b814f56e6368fdec46c4ddb04a07e0923ff995a"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v1#77b81af36cc6c03b07c59a2988b0f6d20960f1b0"
 dependencies = [
  "log",
  "notify",
@@ -3824,7 +3825,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-store"
 version = "0.0.0"
-source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v1#5b814f56e6368fdec46c4ddb04a07e0923ff995a"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v1#77b81af36cc6c03b07c59a2988b0f6d20960f1b0"
 dependencies = [
  "log",
  "serde",
